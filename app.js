@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id),COL={A:'#c9f36b',B:'#70baff'};
-const S={n:0,max:11,a:[],b:[],running:false,raf:0,last:0,elapsed:0,speed:850,physicsActive:false,settle:0,balls:{A:[],B:[]},gravity:900,bounce:.58,friction:.985,targets:{A:[],B:[]}};
+const S={n:0,max:11,a:[],b:[],running:false,raf:0,last:0,elapsed:0,speed:1000,baseSpeed:1000,physicsActive:false,settle:0,balls:{A:[],B:[]},gravity:900,bounce:.58,friction:.985,targets:{A:[],B:[]}};
 const MAX_BALLS=110,RADIUS=4.25,STEP=1/120;
 const fmt=x=>Number.isFinite(x)?(x<1e6?Math.round(x).toLocaleString('es-AR'):x.toExponential(2)):'∞';
 function evaluate(source,n){
@@ -48,8 +48,8 @@ function render(){const a=values('A'),b=values('B');for(const k of ['A','B']){$(
  $('winner').textContent=!S.n?'Todavía no se cruzó la primera pared.':S.n===S.max?(a===b?'¡Empate!':(a>b?$('nameA').value:$('nameB').value)+' termina adelante con '+fmt(Math.max(a,b))+' pelotas.'):(a===b?'Las dos pistas están empatadas.':(a>b?$('nameA').value:$('nameB').value)+' va adelante.');
  const body=$('history');body.replaceChildren();if(!S.n){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent='La tabla se completa durante la carrera.';tr.append(td);body.append(tr)}else for(let i=0;i<S.n;i++){const tr=document.createElement('tr'),lead=S.a[i]===S.b[i]?'Empate':S.a[i]>S.b[i]?'Pista A':'Pista B';[i+1,fmt(S.a[i]),fmt(S.b[i]),lead].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});body.append(tr)}
 }
-function updatePhysicsLabels(){S.gravity=+$('gravity').value;S.bounce=+$('bounce').value;S.friction=+$('friction').value;$('gravityOut').textContent=String(S.gravity);$('bounceOut').textContent=S.bounce.toFixed(2).replace('.',',');$('frictionOut').textContent=S.friction.toFixed(3).replace('.',',');$('physicsReadout').textContent='FÍSICA ACTIVA · GRAVEDAD '+S.gravity+' · REBOTE '+S.bounce.toFixed(2).replace('.',',')+' · FRICCIÓN '+S.friction.toFixed(3).replace('.',',')}
-function updateStatus(){if(S.running){$('status').textContent='EN CURSO';$('play').textContent='Ⅱ Pausar'}else if(S.n===S.max&&S.n){$('status').textContent='FINALIZADA';$('play').textContent='↻ Repetir'}else if(S.n){$('status').textContent='EN PAUSA';$('play').textContent='▶ Reanudar'}else{$('status').textContent='LISTA';$('play').textContent='▶ Iniciar'}}
+function updateSpeedLabel(){const v=+$('speed').value;$('speedOut').textContent=v.toFixed(2).replace('.',',')+'×';S.speed=1000/v}\nfunction updatePhysicsLabels(){S.gravity=+$('gravity').value;S.bounce=+$('bounce').value;S.friction=+$('friction').value;$('gravityOut').textContent=String(S.gravity);$('bounceOut').textContent=S.bounce.toFixed(2).replace('.',',');$('frictionOut').textContent=S.friction.toFixed(3).replace('.',',');$('physicsReadout').textContent='FÍSICA ACTIVA · GRAVEDAD '+S.gravity+' · REBOTE '+S.bounce.toFixed(2).replace('.',',')+' · FRICCIÓN '+S.friction.toFixed(3).replace('.',',')}
+function updateStatus(){if(S.running){$('status').textContent='EN CURSO';$('play').textContent='Ⅱ Pausar';$('speedToggle').textContent='Ⅱ Pausar'}else if(S.n===S.max&&S.n){$('status').textContent='FINALIZADA';$('play').textContent='↻ Repetir';$('speedToggle').textContent='↻ Repetir'}else if(S.n){$('status').textContent='EN PAUSA';$('play').textContent='▶ Reanudar';$('speedToggle').textContent='▶ Reanudar'}else{$('status').textContent='LISTA';$('play').textContent='▶ Iniciar carrera';$('speedToggle').textContent='▶ Iniciar'}}
 function advance(){if(S.n>=S.max)return false;const n=S.n+1;try{S.a.push(evaluate($('fA').value,n));S.b.push(evaluate($('fB').value,n))}catch(e){return false}S.n=n;for(const k of ['A','B'])spawn(k,targetFor(k,n));S.physicsActive=true;S.settle=2.3;render();updateStatus();return true}
 function stop(){S.running=false;S.elapsed=0;S.settle=Math.max(S.settle,1.1);updateStatus()}
 function frame(t){if(!S.raf)return;if(!S.last)S.last=t;let dt=Math.min(.032,(t-S.last)/1000);S.last=t;if(S.physicsActive){simulateLane('A',dt);simulateLane('B',dt);S.settle-=dt;if(S.settle<=0&&!S.running){S.physicsActive=false;S.settle=0}draw('A');draw('B')}
@@ -62,11 +62,11 @@ function showRace(){if(!validate()){$('validation').textContent='● REVISÁ LAS
 function showSetup(){stop();S.physicsActive=false;if(S.raf)cancelAnimationFrame(S.raf);S.raf=0;$('raceScreen').classList.add('hidden');$('setupScreen').classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'})}
 $('walls').oninput=()=>{$('wallNum').textContent=$('walls').value;$('wallHint').textContent=$('walls').value};
 $('launch').onclick=showRace;$('back').onclick=showSetup;$('play').onclick=start;$('step').onclick=()=>{if(S.running)stop();if(S.n<S.max){advance();wake()}};
-$('restart').onclick=resetRace;$('speed').onchange=()=>S.speed=+$('speed').value;
+$('restart').onclick=resetRace;$('speed').oninput=updateSpeedLabel;$('speedToggle').onclick=()=>{if(S.running)stop();else start()};
 ['gravity','bounce','friction'].forEach(id=>$(id).addEventListener('input',updatePhysicsLabels));
 ['fA','fB','nameA','nameB'].forEach(id=>$(id).addEventListener('input',()=>{names();if(validate())$('validation').textContent='● FUNCIONES VÁLIDAS';else $('validation').textContent='● REVISÁ LAS FUNCIONES'}));
 document.querySelectorAll('[data-f]').forEach(btn=>btn.onclick=()=>{$(btn.dataset.f).value=btn.dataset.v;names();validate();$('validation').textContent='● FUNCIONES VÁLIDAS'});
 $('csv').onclick=()=>{if(!S.n)return;const rows=[['Pared','Pista A','Pista B','Ventaja']];for(let i=0;i<S.n;i++)rows.push([i+1,S.a[i],S.b[i],S.a[i]===S.b[i]?'Empate':S.a[i]>S.b[i]?'Pista A':'Pista B']);const blob=new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='function-race.csv';a.click();URL.revokeObjectURL(url)};
 $('help').onclick=()=>$('dialog').showModal();$('close').onclick=()=>$('dialog').close();window.addEventListener('resize',()=>{draw('A');draw('B')});
-$('walls').value=11;S.max=11;names();$('wallNum').textContent='11';$('wallHint').textContent='11';updatePhysicsLabels();render();
+$('walls').value=11;S.max=11;updateSpeedLabel();names();$('wallNum').textContent='11';$('wallHint').textContent='11';updatePhysicsLabels();render();
 })();
