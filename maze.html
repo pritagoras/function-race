@@ -58,7 +58,8 @@ input[type=range],select{width:100%;accent-color:var(--accent)}select{background
 const $=s=>document.querySelector(s), canvas=$('#maze'),ctx=canvas.getContext('2d');
 const COLORS={bfs:'#4aa3ff',dfs:'#ff8b5e',dijkstra:'#d78cff',astar:'#c6ea5b'};
 const NAMES={bfs:'BFS',dfs:'DFS',dijkstra:'Dijkstra',astar:'A*'};
-let cols=25,rows=17,grid=[],start=0,goal=0,solvers=[],running=false,paused=false,last=0,acc=0,cell=16,offsetX=0,offsetY=0;\nconst TYPES=['bfs','dfs','dijkstra','astar'];
+let cols=25,rows=17,grid=[],start=0,goal=0,solvers=[],running=false,paused=false,last=0,acc=0,cell=16,offsetX=0,offsetY=0;
+const TYPES=['bfs','dfs','dijkstra','astar'];
 const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
 function idx(x,y){return y*cols+x}
 function neighbors(id){const x=id%cols,y=Math.floor(id/cols),out=[];for(let d=0;d<4;d++){const nx=x+dirs[d][0],ny=y+dirs[d][1];if(nx>=0&&ny>=0&&nx<cols&&ny<rows){const j=idx(nx,ny);if(!grid[j].walls[d])out.push(j)}}return out}
