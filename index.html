@@ -410,7 +410,7 @@ function updRacer(r, dt, pd) {
           // Cada pelota conserva su poder. Solo al alcanzar el límite visual,
           // cada esfera representa varias pelotas matemáticas.
           const currentTarget = clamp(Math.round(r.B), 1, MAXB);
-          const virtualWeight = balls.length >= currentTarget ? Math.max(1, r.B / currentTarget) : 1;
+          const virtualWeight = balls.length >= currentTarget && r.B > MAXB ? r.B / MAXB : 1;
           const dmg = (running && !r.done) ? r.P * virtualWeight : 0;
           if (hl.length < 64) hl.push({ x: b.x, rad: rr, d: dmg });
           if (dmg > 0) applyDamage(r, dmg);
@@ -478,7 +478,7 @@ function updRacer(r, dt, pd) {
 
   // Cada impacto produce dos descendientes. El registro visual guarda solo
   // una muestra de impactos, pero el contador hits conserva el total real.
-  if (running && hits) {
+  if (running && !r.done && hits) {
     const liveTarget = clamp(Math.round(r.B), 1, MAXB);
     const births = Math.min(Math.max(0, liveTarget - balls.length), hits * 2, MAXB - balls.length);
     for (let q = 0; q < births; q++) {
