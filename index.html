@@ -15,7 +15,7 @@
   #bar button { background:rgba(30,30,30,.85); color:var(--fg); border:1px solid #333; border-radius:999px;
     padding:12px 18px; font-size:16px; backdrop-filter:blur(6px); cursor:pointer; }
   #bar button:active { transform:scale(.96); }
-  #bar #bPlay { background:var(--acc); color:#001; border-color:transparent; font-weight:600; }
+  #bar #bMaze { background:rgba(30,30,30,.85); color:var(--fg); border:1px solid #333; }\n  #bar #bPlay { background:var(--acc); color:#001; border-color:transparent; font-weight:600; }
   #panel { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:flex; align-items:flex-end; justify-content:center; }
   #panel.hidden { display:none; }
   .sheet { width:100%; max-width:680px; max-height:92dvh; overflow:auto; background:#111; border:1px solid #2a2a2a;
@@ -62,6 +62,7 @@
 
 <div id="bar">
   <button id="bGear" aria-label="Ajustes">⚙ Ajustes</button>
+  <button id="bMaze" onclick="location.href='maze.html'">⌘ Maze Evolution</button>
   <button id="bPlay">▶ Iniciar</button>
   <button id="bPause" aria-label="Pausa">⏸</button>
   <button id="bSnd" aria-label="Sonido">🔊</button>
