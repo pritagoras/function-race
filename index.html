@@ -171,7 +171,7 @@ function normSpec(x, fallback) {
   }
   return clone(fallback);
 }
-const C = c => ({ k: 'const', c }), PW = (a, p) => ({ k: 'pow', a, p }), EX = (a, b) => ({ k: 'exp', a, b }), FA = a => ({ k: 'fact', a });
+const C = c => ({ k: 'const', c }), PW = (a, p) => ({ k: 'pow', a, p }), EX = (a, b) => ({ k: 'exp', a, b }), FA = a => ({ k: 'fact', a }), CU = e => ({ k: 'custom', e });
 const PRESETS = {
   'n³ vs 2ⁿ (el clásico)': {
     walls: 20, speed: 2, hp: PW(2, 3),
@@ -194,6 +194,38 @@ const PRESETS = {
       { name: '2ⁿ', color: '#4aa3ff', balls: C(1), power: EX(1, 2) },
       { name: 'n!', color: '#ff5bd1', balls: C(1), power: FA(1) },
       { name: 'n⁵', color: '#c6ea5b', balls: C(1), power: PW(1, 5) }
+    ]
+  },
+  'Irracionales: πⁿ vs eⁿ': {
+    walls: 8, speed: 2, hp: EX(1, 10),
+    racers: [
+      { name: 'πⁿ', color: '#c6ea5b', balls: C(3), power: CU('PI^n') },
+      { name: 'eⁿ', color: '#4aa3ff', balls: C(3), power: CU('E^n') },
+      { name: '√2ⁿ', color: '#ff7a59', balls: C(3), power: CU('sqrt(2)^n') }
+    ]
+  },
+  'El número áureo: φⁿ vs πⁿ': {
+    walls: 10, speed: 1.5, hp: PW(10, 4),
+    racers: [
+      { name: 'φⁿ', color: '#ffd24a', balls: C(2), power: CU('((1+sqrt(5))/2)^n') },
+      { name: 'πⁿ', color: '#c6ea5b', balls: C(2), power: CU('PI^n') },
+      { name: 'eⁿ', color: '#4aa3ff', balls: C(2), power: CU('E^n') }
+    ]
+  },
+  'Exponentes irracionales: n^π vs n^e': {
+    walls: 12, speed: 2, hp: PW(10, 4),
+    racers: [
+      { name: 'n^π', color: '#c6ea5b', balls: C(1), power: CU('n^PI') },
+      { name: 'n^e', color: '#4aa3ff', balls: C(1), power: CU('n^E') },
+      { name: 'n^φ', color: '#ff7a59', balls: C(1), power: CU('n^((1+sqrt(5))/2)') }
+    ]
+  },
+  'Ritmo irregular: oscilaciones': {
+    walls: 16, speed: 2, hp: PW(5, 2),
+    racers: [
+      { name: 'Oscila', color: '#ff5bd1', balls: PW(1, 1), power: CU('abs(sin(n*PI/2))*n^2+1') },
+      { name: 'Lineal', color: '#4aa3ff', balls: PW(1, 1), power: CU('2*n') },
+      { name: 'Cuadrática', color: '#c6ea5b', balls: PW(1, 1), power: PW(1, 2) }
     ]
   }
 };
