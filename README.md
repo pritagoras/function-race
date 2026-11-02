@@ -188,6 +188,12 @@ Los ajustes aplicados quedan codificados en el fragmento de la URL (`#hash`). Al
 - **n³ vs 2ⁿ (el clásico):** compara crecimiento cúbico de cantidad contra crecimiento exponencial de poder.
 - **Polinomios: n, n², n³:** compara tres ritmos de crecimiento polinómico con el mismo poder.
 - **Explosión: 2ⁿ vs n! vs n⁵:** compara crecimiento exponencial, factorial y potencia de grado cinco.
+- **Irracionales: πⁿ vs eⁿ:** usa π, e y √2 como bases de crecimiento exponencial.
+- **El número áureo: φⁿ vs πⁿ:** compara la potencia del número áureo (φ), π y e.
+- **Exponentes irracionales: n^π vs n^e:** mantiene la base variable y compara exponentes irracionales, incluido φ.
+- **Ritmo irregular: oscilaciones:** enfrenta una función que alterna su poder con funciones lineales y cuadráticas.
+
+Los presets con constantes usan las expresiones `PI`, `E` y `(1+sqrt(5))/2` para representar π, e y el número áureo φ. No son valores redondeados: se evalúan con la precisión numérica de JavaScript.
 
 Los presets son puntos de partida: podés modificarlos y crear tus propias comparaciones.
 
