@@ -10,7 +10,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow:hidden; touch-action:manipulation; }
-  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  #c { position:fixed; inset:0; width:100%; height:100%; display:block; }
   #bar { position:fixed; left:0; right:0; bottom:calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; justify-content:center; z-index:5; }
   #bar button { background:rgba(30,30,30,.85); color:var(--fg); border:1px solid #333; border-radius:999px;
     padding:12px 18px; font-size:16px; backdrop-filter:blur(6px); cursor:pointer; }
@@ -38,6 +38,13 @@
   .err { color:#ff6b6b; font-size:13px; min-height:18px; margin:10px 0 0; white-space:pre-wrap; }
   .hint { color:var(--mut); font-size:12px; line-height:1.5; margin:12px 0 0; }
   code { color:#c6ea5b; }
+  .ed { margin-top:12px; padding:10px 12px 12px; background:#161616; border:1px solid #262626; border-radius:12px; }
+  .edt { font-size:12px; color:var(--fg); font-weight:600; margin-bottom:6px; }
+  .params { display:grid; grid-template-columns:1fr 1fr; gap:0 10px; }
+  .params label.wide { grid-column:1 / -1; }
+  canvas.prev { display:block; width:100%; height:48px; margin-top:10px; border-radius:8px; }
+  .info { font-size:11px; color:var(--mut); margin-top:4px; }
+  .err2 { color:#ff6b6b; font-size:12px; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -62,13 +69,11 @@
       <input id="walls" type="range" min="1" max="100" step="1">
     </label>
 
-    <label>Vida (HP) de la pared <code>n</code>
-      <input id="hp" type="text" spellcheck="false" autocapitalize="off" autocomplete="off">
+    <label>Velocidad de la simulación: <b id="spdOut"></b>
+      <input id="spd" type="range" min="0.5" max="5" step="0.5">
     </label>
 
-    <label>Duración de la carrera (segundos que tarda el ganador)
-      <input id="dur" type="number" min="5" max="300" step="1">
-    </label>
+    <div id="hpEd"></div>
 
     <div id="racers"></div>
     <div class="btns"><button class="small" id="addR">+ Agregar corredor</button></div>
@@ -80,10 +85,10 @@
     </div>
 
     <p class="hint">
-      Cada corredor tiene una ecuación para las <b>pelotas</b> y otra para el <b>poder</b> (daño por pelota), ambas en función de
-      <code>n</code> (la pared actual). El daño por segundo es pelotas × poder.<br>
-      Podés usar: <code>+ - * / % ^ ( )</code>, <code>n</code>, <code>sqrt log log2 exp sin cos abs min max floor ceil pow</code>,
-      <code>fact(n)</code>, <code>PI</code>, <code>E</code>. Ejemplos: <code>n^3</code>, <code>2^n</code>, <code>n*log2(n+1)</code>, <code>fact(n)</code>.
+      Para cada cosa elegís el <b>tipo de función</b> (constante, lineal, potencia, exponencial, factorial…) y sus números; el gráfico
+      muestra cómo crece en las paredes 1…N. <b>Cada golpe</b> de una pelota quita de vida el <b>poder</b> de la pared actual; las pelotas se
+      multiplican al pegar hasta llegar a la <b>cantidad</b>. Con "Fórmula propia" podés usar <code>n</code>, <code>+ - * / % ^ ( )</code>,
+      <code>sqrt log log2 exp sin cos abs min max floor ceil</code>, <code>fact(n)</code>, <code>PI</code>, <code>E</code>.
     </p>
   </div>
 </div>
@@ -140,28 +145,55 @@ function compile(src) {
 }
 
 /* ============================ configuración ============================ */
+const nf = v => { const x = Number(v); return Number.isFinite(x) ? String(x) : '0'; };
+const mulA = a => (Number(a) === 1 ? '' : nf(a) + '*');
+const par = v => (Number(v) < 0 ? '(' + nf(v) + ')' : nf(v));
+const KINDS = {
+  const:  { label: 'Constante', params: [{ key: 'c', label: 'Valor', def: 1 }], expr: s => nf(s.c) },
+  lin:    { label: 'Lineal  a·n + b', params: [{ key: 'a', label: 'a', def: 1 }, { key: 'b', label: 'b', def: 0 }],
+            expr: s => { const t = mulA(s.a) + 'n', b = Number(s.b); return b === 0 ? t : (b > 0 ? t + '+' + nf(b) : t + '-' + nf(-b)); } },
+  pow:    { label: 'Potencia  a·nᵖ', params: [{ key: 'a', label: 'a', def: 1 }, { key: 'p', label: 'p (exponente)', def: 2 }],
+            expr: s => mulA(s.a) + 'n^' + par(s.p) },
+  exp:    { label: 'Exponencial  a·bⁿ', params: [{ key: 'a', label: 'a', def: 1 }, { key: 'b', label: 'b (base)', def: 2 }],
+            expr: s => mulA(s.a) + par(s.b) + '^n' },
+  fact:   { label: 'Factorial  a·n!', params: [{ key: 'a', label: 'a', def: 1 }], expr: s => mulA(s.a) + 'fact(n)' },
+  log:    { label: 'Logarítmica  a·log₂(n+1)', params: [{ key: 'a', label: 'a', def: 1 }], expr: s => mulA(s.a) + 'log2(n+1)' },
+  sqrt:   { label: 'Raíz  a·√n', params: [{ key: 'a', label: 'a', def: 1 }], expr: s => mulA(s.a) + 'sqrt(n)' },
+  custom: { label: 'Fórmula propia', params: [{ key: 'e', label: 'f(n) =', def: 'n', text: true }], expr: s => String(s.e) }
+};
+const specExpr = sp => KINDS[sp.k].expr(sp);
+function normSpec(x, fallback) {
+  if (typeof x === 'string') return { k: 'custom', e: x };
+  if (x && KINDS[x.k]) {
+    const o = { k: x.k };
+    KINDS[x.k].params.forEach(pm => { o[pm.key] = x[pm.key] !== undefined ? x[pm.key] : pm.def; });
+    return o;
+  }
+  return clone(fallback);
+}
+const C = c => ({ k: 'const', c }), PW = (a, p) => ({ k: 'pow', a, p }), EX = (a, b) => ({ k: 'exp', a, b }), FA = a => ({ k: 'fact', a });
 const PRESETS = {
   'n³ vs 2ⁿ (el clásico)': {
-    walls: 36, hp: '100*n^3', duration: 40,
+    walls: 20, speed: 2, hp: PW(2, 3),
     racers: [
-      { name: 'Más pelotas', color: '#c6ea5b', balls: 'n^3', power: '1' },
-      { name: 'Más poder',   color: '#4aa3ff', balls: '1',   power: '2^n' }
+      { name: 'Más pelotas', color: '#c6ea5b', balls: PW(1, 3), power: C(1) },
+      { name: 'Más poder',   color: '#4aa3ff', balls: C(1),     power: EX(1, 2) }
     ]
   },
   'Polinomios: n, n², n³': {
-    walls: 20, hp: '100*n^2', duration: 35,
+    walls: 14, speed: 2, hp: PW(4, 2),
     racers: [
-      { name: 'n',  color: '#ff7a59', balls: 'n',   power: '1' },
-      { name: 'n²', color: '#ffd24a', balls: 'n^2', power: '1' },
-      { name: 'n³', color: '#5be0a6', balls: 'n^3', power: '1' }
+      { name: 'n',  color: '#ff7a59', balls: PW(1, 1), power: C(1) },
+      { name: 'n²', color: '#ffd24a', balls: PW(1, 2), power: C(1) },
+      { name: 'n³', color: '#5be0a6', balls: PW(1, 3), power: C(1) }
     ]
   },
   'Explosión: 2ⁿ vs n! vs n⁵': {
-    walls: 30, hp: '1000*n^2', duration: 40,
+    walls: 14, speed: 1.5, hp: EX(2, 2.5),
     racers: [
-      { name: '2ⁿ', color: '#4aa3ff', balls: '1', power: '2^n' },
-      { name: 'n!', color: '#ff5bd1', balls: '1', power: 'fact(n)' },
-      { name: 'n⁵', color: '#c6ea5b', balls: '1', power: 'n^5' }
+      { name: '2ⁿ', color: '#4aa3ff', balls: C(1), power: EX(1, 2) },
+      { name: 'n!', color: '#ff5bd1', balls: C(1), power: FA(1) },
+      { name: 'n⁵', color: '#c6ea5b', balls: C(1), power: PW(1, 5) }
     ]
   }
 };
@@ -169,12 +201,22 @@ const PALETTE = ['#c6ea5b', '#4aa3ff', '#ff7a59', '#ff5bd1'];
 const clone = o => JSON.parse(JSON.stringify(o));
 const firstPreset = () => clone(PRESETS[Object.keys(PRESETS)[0]]);
 
+function normCfg(c) {
+  const base = firstPreset();
+  const out = { walls: clamp(parseInt(c.walls, 10) || base.walls, 1, 100), speed: clamp(parseFloat(c.speed) || 1, 0.5, 5),
+                hp: normSpec(c.hp, base.hp), racers: [] };
+  (c.racers || []).slice(0, 4).forEach((r, i) => out.racers.push({
+    name: String(r.name || ('Corredor ' + (i + 1))), color: /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : PALETTE[i % 4],
+    balls: normSpec(r.balls, C(1)), power: normSpec(r.power, C(1)) }));
+  if (!out.racers.length) return base;
+  return out;
+}
 function loadHash() {
   try {
     if (!location.hash || location.hash.length < 3) return null;
     const j = decodeURIComponent(escape(atob(decodeURIComponent(location.hash.slice(1)))));
     const c = JSON.parse(j);
-    if (c && c.racers && c.racers.length) return c;
+    if (c && c.racers && c.racers.length) return normCfg(c);
   } catch (e) {}
   return null;
 }
@@ -241,23 +283,16 @@ function resize() {
 }
 
 function build(cfg) {
-  const hpF = compile(cfg.hp);
+  const hpF = compile(specExpr(cfg.hp));
   const racers = cfg.racers.map((c, i) => {
-    const bF = compile(c.balls), pF = compile(c.power);
-    const b = c.balls.trim(), p = c.power.trim();
-    const label = b === '1' ? p : (p === '1' ? b : `(${b})·(${p})`);
+    const be = specExpr(c.balls).trim(), pe = specExpr(c.power).trim();
+    const bF = compile(be), pF = compile(pe);
+    const label = be === '1' ? pe : (pe === '1' ? be : `(${be})·(${pe})`);
     return { idx: i, name: c.name, color: c.color, bF, pF, label };
   });
-  S.cfg = cfg; S.N = cfg.walls; S.hpF = hpF;
+  S.cfg = cfg; S.N = cfg.walls; S.hpF = hpF; S.speed = cfg.speed || 1;
   S.hpArr = [0];
   for (let k = 1; k <= S.N; k++) S.hpArr[k] = Math.max(1, hpF(k));
-  racers.forEach(r => {
-    let t = 0;
-    for (let k = 1; k <= S.N; k++) t += S.hpArr[k] / (r.bF(k) * r.pF(k));
-    r.total = t;
-  });
-  const fin = racers.map(r => r.total).filter(Number.isFinite);
-  S.rate = fin.length ? Math.min(...fin) / cfg.duration : 1;
   S.racers = racers;
   resetRun();
 }
@@ -275,26 +310,12 @@ function resetRun() {
 }
 
 /* ============================ simulación ============================ */
-function remainingSim(r) {
-  let t = 0;
-  for (let k = r.n; k <= S.N; k++) {
-    const dps = r.bF(k) * r.pF(k);
-    const hp = k === r.n ? r.hp : S.hpArr[k];
-    t += hp / dps;
-  }
-  return t;
-}
-// El daño se simula exacto (pelotas × poder × tiempo), así el ganador y la duración
-// respetan las ecuaciones. Las pelotas "cobran" ese daño visualmente al golpear la pared.
-function stepRacer(r, simDt) {
-  if (r.done) return;
-  let tl = simDt, guard = 0;
-  while (tl > 0 && !r.done && guard++ < 500) {
-    const dps = r.B * r.P;
-    if (!(dps > 0)) break;
-    const need = r.hp / dps;
-    if (need <= tl) { tl -= need; r.dmgAcc += r.hp; breakWall(r); }
-    else { const d = dps * tl; r.hp -= d; r.dmgAcc += d; tl = 0; }
+// Daño real: cada golpe de una pelota quita "poder" de vida a la pared actual (el sobrante pasa a la siguiente).
+function applyDamage(r, dmg) {
+  let guard = 0;
+  while (dmg > 0 && !r.done && guard++ < 500) {
+    if (dmg >= r.hp) { dmg -= r.hp; r.hp = 0; breakWall(r); }
+    else { r.hp -= dmg; dmg = 0; }
   }
 }
 function breakWall(r) {
@@ -324,13 +345,7 @@ function finishRacer(r) {
       life: rand(1.2, 2.4), max: 2.4, size: rand(3, 6), color: j % 3 ? r.color : '#ffffff', g: 260 });
   }
   shake = Math.max(shake, 10);
-  if (!S.winner) {
-    S.winner = r; S.winAt = S.time; S.afterT = 0; sfxWin();
-    let maxRem = 0;
-    S.racers.forEach(o => { if (!o.done) maxRem = Math.max(maxRem, remainingSim(o) / S.rate); });
-    S.scale = clamp(maxRem / 12, 1, 300);
-    if (!isFinite(maxRem)) S.scale = 300;
-  }
+  if (!S.winner) { S.winner = r; S.winAt = S.time; S.afterT = 0; sfxWin(); }
 }
 
 function spawnBall(r, x, y, up) {
@@ -338,7 +353,7 @@ function spawnBall(r, x, y, up) {
   r.balls.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, k: Math.random(), r: 4, cell: 0, t: S.time });
 }
 
-function updRacer(r, dt) {
+function updRacer(r, dt, pd) {
   const i = r.idx, x0 = i * L.laneW + 14, x1 = (i + 1) * L.laneW - 14, top = L.padTop + 6;
   const target = L.stackTop + (Math.min(r.n, S.N + 1) - 1) * L.wallH;
   r.floorY += (target - r.floorY) * Math.min(1, dt * 7);
@@ -366,7 +381,9 @@ function updRacer(r, dt) {
   const maxR = base * 1.1, cell = Math.max(4, maxR * 2);
   const cols = Math.max(1, Math.ceil((x1 - x0) / cell)), rows = Math.max(1, Math.ceil((Math.max(20, floor - top) + cell) / cell));
   const head = new Int32Array(cols * rows), next = new Int32Array(n);
-  const sub = clamp(Math.ceil(dt / 0.006), 1, 8), h = dt / sub;
+  const sub = clamp(Math.ceil(pd / 0.006), 1, 12), h = pd / sub;
+  const running = S.state === 'running';
+  const w = balls.length >= tgt ? r.B / tgt : 1; // cada pelota representa B/tgt pelotas reales cuando se llega al tope visual
   const hl = r.hitList; hl.length = 0;
   let hits = 0;
 
@@ -383,7 +400,9 @@ function updRacer(r, dt) {
         if (b.vy > 0) {
           b.vy = -b.vy; b.vx += rand(-25, 25);
           hits++;
-          if (hl.length < 64) hl.push({ x: b.x, rad: rr });
+          const dmg = (running && !r.done) ? r.P * w : 0;
+          if (hl.length < 64) hl.push({ x: b.x, rad: rr, d: dmg });
+          if (dmg > 0) applyDamage(r, dmg);
           if (parts.length < 1200 && Math.random() < 0.3) {
             parts.push({ x: b.x, y: floor, vx: rand(-80, 80), vy: rand(-220, -60), life: .35, max: .35, size: rand(1.5, 3), color: r.color, g: 600 });
           }
@@ -430,7 +449,7 @@ function updRacer(r, dt) {
     }
   }
   // energía estable: rapidez constante, sin quedarse quietas ni disparadas
-  const sp0 = 330, kk = Math.min(1, dt * 2);
+  const sp0 = 330, kk = Math.min(1, pd * 2);
   for (const b of balls) {
     const sp = Math.hypot(b.vx, b.vy) || 1, f = 1 + (sp0 / sp - 1) * kk;
     b.vx *= f; b.vy *= f;
@@ -446,44 +465,40 @@ function updRacer(r, dt) {
     }
   }
 
-  // el golpe contra la pared multiplica pelotas (hasta el objetivo) y descarga el daño
-  if (S.state === 'running' && hits) {
+  // el golpe contra la pared multiplica pelotas (hasta el objetivo)
+  if (running && hits) {
     let room = tgt - balls.length, spawned = 0;
-    // cada golpe a la pared suelta 2 pelotas nuevas, hasta llegar al objetivo
     for (let q = 0; q < hl.length * 2 && room > 0 && spawned < 30; q++, room--, spawned++) {
       const hh = hl[q >> 1];
       spawnBall(r, hh.x, floor - hh.rad * 2 - 2, true);
       if ((q & 1) === 0 && parts.length < 1200) parts.push({ x: hh.x, y: floor - 4, vx: rand(-60, 60), vy: rand(-140, -40), life: .3, max: .3, size: 3, color: '#ffffff', g: 300 });
     }
-    const dealt = r.dmgAcc; r.dmgAcc = 0; r.hitHp = r.hp;
-    if (dealt > 0) {
-      if (n <= 10 && pops.length < 60) {
-        const per = dealt / Math.max(1, hits);
-        for (let q = 0; q < Math.min(4, hl.length); q++) pops.push({ x: hl[q].x, y: Math.max(top + 20, floor - 22), text: '-' + fmt(per), life: .8, max: .8, color: r.color });
-        r.popAcc = 0;
-      } else {
-        r.popAcc += dealt;
-        if (r.popT <= 0 && pops.length < 60 && hl.length) {
-          pops.push({ x: hl[(Math.random() * hl.length) | 0].x, y: Math.max(top + 20, floor - 22), text: '-' + fmt(r.popAcc), life: .8, max: .8, color: r.color });
-          r.popAcc = 0; r.popT = 0.14;
-        }
+    // números de daño en el punto de impacto
+    if (n <= 10) {
+      for (let q = 0; q < Math.min(4, hl.length); q++) if (hl[q].d > 0 && pops.length < 60)
+        pops.push({ x: hl[q].x, y: Math.max(top + 20, floor - 22), text: '-' + fmt(hl[q].d), life: .8, max: .8, color: r.color });
+    } else {
+      for (const e of hl) r.popAcc += e.d;
+      if (r.popT <= 0 && pops.length < 60 && hl.length && r.popAcc > 0) {
+        pops.push({ x: hl[(Math.random() * hl.length) | 0].x, y: Math.max(top + 20, floor - 22), text: '-' + fmt(r.popAcc), life: .8, max: .8, color: r.color });
+        r.popAcc = 0; r.popT = 0.14;
       }
     }
   }
+  r.hitHp = r.hp;
   r.popT -= dt;
 }
 
 function update(dt) {
   S.time += dt;
+  const pd = dt * (S.speed || 1);
   if (S.state === 'running') {
-    const sc = S.winner ? S.scale : 1;
-    S.clock += dt * sc;
-    const simDt = dt * sc * S.rate;
-    S.racers.forEach(r => stepRacer(r, simDt));
+    S.clock += pd;
     if (S.winner) S.afterT += dt;
-    if (S.racers.every(r => r.done) || S.afterT > 25) { S.state = 'over'; updatePlayBtn(); }
+    // termina cuando todos llegaron, o 20 s reales después de que gane el primero
+    if (S.racers.every(r => r.done) || S.afterT > 20) { S.state = 'over'; updatePlayBtn(); }
   }
-  S.racers.forEach(r => updRacer(r, dt));
+  if (S.state !== 'paused') S.racers.forEach(r => updRacer(r, dt, pd));
   for (const p of parts) { p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
   parts = parts.filter(p => p.life > 0);
   for (const p of pops) { p.y -= 40 * dt; p.life -= dt; }
@@ -701,14 +716,68 @@ cv.addEventListener('pointerdown', () => { if (S.state === 'idle') { initAudio()
 
 /* ----- panel de ajustes ----- */
 let D = firstPreset();
-function field(label, val, cb) {
-  const l = document.createElement('label'); l.textContent = label;
-  const i = document.createElement('input'); i.type = 'text'; i.value = val;
-  i.spellcheck = false; i.autocapitalize = 'off'; i.autocomplete = 'off';
-  i.addEventListener('input', () => cb(i.value));
-  l.appendChild(i); return l;
+let previewers = [];
+function drawPreview(cnv, info, err, spec) {
+  const g = cnv.getContext('2d'), w = cnv.width, h = cnv.height;
+  g.fillStyle = '#101010'; g.fillRect(0, 0, w, h);
+  let f;
+  try { f = compile(specExpr(spec)); err.textContent = ''; } catch (e) { err.textContent = '⚠ ' + e.message; info.textContent = ''; return; }
+  const N = clamp(D.walls, 1, 100), v = [];
+  for (let k = 1; k <= N; k++) v.push(f(k));
+  const ly = v.map(x => Math.log10(1 + x)), mn = Math.min(...ly), mx = Math.max(...ly);
+  g.strokeStyle = '#4aa3ff'; g.lineWidth = 4; g.lineJoin = 'round'; g.beginPath();
+  for (let k = 0; k < N; k++) {
+    const x = N === 1 ? w / 2 : 10 + (w - 20) * k / (N - 1);
+    const y = mx - mn < 1e-9 ? h / 2 : h - 10 - (h - 20) * (ly[k] - mn) / (mx - mn);
+    if (k) g.lineTo(x, y); else g.moveTo(x, y);
+  }
+  g.stroke();
+  info.textContent = 'n=1 → ' + fmt(v[0]) + '   ·   n=' + N + ' → ' + fmt(v[N - 1]) + '   (escala logarítmica)';
 }
-function renderRacers() {
+function makeEditor(title, spec) {
+  const box = document.createElement('div'); box.className = 'ed';
+  const t = document.createElement('div'); t.className = 'edt'; t.textContent = title; box.appendChild(t);
+  const sel = document.createElement('select');
+  Object.keys(KINDS).forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = KINDS[k].label; sel.appendChild(o); });
+  sel.value = spec.k; box.appendChild(sel);
+  const pr = document.createElement('div'); pr.className = 'params'; box.appendChild(pr);
+  const cnv = document.createElement('canvas'); cnv.className = 'prev'; cnv.width = 560; cnv.height = 96; box.appendChild(cnv);
+  const info = document.createElement('div'); info.className = 'info'; box.appendChild(info);
+  const err = document.createElement('div'); err.className = 'err2'; box.appendChild(err);
+  const refresh = () => drawPreview(cnv, info, err, spec);
+  previewers.push(refresh);
+  function renderParams() {
+    pr.innerHTML = '';
+    KINDS[spec.k].params.forEach(pm => {
+      const l = document.createElement('label'); l.textContent = pm.label; if (pm.text) l.className = 'wide';
+      const i = document.createElement('input');
+      if (pm.text) { i.type = 'text'; i.value = spec[pm.key]; i.spellcheck = false; i.autocapitalize = 'off'; i.autocomplete = 'off'; }
+      else { i.type = 'number'; i.step = 'any'; i.inputMode = 'decimal'; i.value = spec[pm.key]; }
+      i.addEventListener('input', () => {
+        if (pm.text) spec[pm.key] = i.value;
+        else { const v = parseFloat(i.value); spec[pm.key] = Number.isNaN(v) ? 0 : v; }
+        refresh();
+      });
+      l.appendChild(i); pr.appendChild(l);
+    });
+  }
+  sel.addEventListener('change', () => {
+    const old = Object.assign({}, spec), expr0 = (() => { try { return specExpr(old); } catch (e) { return 'n'; } })();
+    Object.keys(spec).forEach(k => delete spec[k]);
+    spec.k = sel.value;
+    KINDS[sel.value].params.forEach(pm => {
+      spec[pm.key] = (old[pm.key] !== undefined && typeof old[pm.key] === typeof pm.def) ? old[pm.key] : pm.def;
+    });
+    if (sel.value === 'custom') spec.e = expr0;
+    renderParams(); refresh();
+  });
+  renderParams(); refresh();
+  return box;
+}
+function renderEditors() {
+  previewers = [];
+  const hpBox = $('#hpEd'); hpBox.innerHTML = '';
+  hpBox.appendChild(makeEditor('Vida de cada pared (según su número n)', D.hp));
   const box = $('#racers'); box.innerHTML = '';
   D.racers.forEach((r, i) => {
     const fs = document.createElement('fieldset');
@@ -720,25 +789,22 @@ function renderRacers() {
     lg.append(col, nm);
     if (D.racers.length > 1) {
       const rm = document.createElement('button'); rm.className = 'small'; rm.textContent = '✕'; rm.type = 'button';
-      rm.addEventListener('click', () => { D.racers.splice(i, 1); renderRacers(); });
+      rm.addEventListener('click', () => { D.racers.splice(i, 1); renderEditors(); });
       lg.append(rm);
     }
-    fs.append(lg,
-      field('Pelotas en la pared n', r.balls, v => { r.balls = v; }),
-      field('Poder (daño por pelota) en la pared n', r.power, v => { r.power = v; }));
+    fs.append(lg, makeEditor('Cantidad de pelotas (según n)', r.balls), makeEditor('Poder: vida que quita cada golpe (según n)', r.power));
     box.appendChild(fs);
   });
   $('#addR').style.display = D.racers.length >= 4 ? 'none' : '';
 }
 function syncPanel() {
   $('#walls').value = D.walls; $('#wallsOut').textContent = D.walls;
-  $('#hp').value = D.hp; $('#dur').value = D.duration;
-  renderRacers();
+  $('#spd').value = D.speed; $('#spdOut').textContent = '×' + D.speed;
+  renderEditors();
 }
 function readPanel() {
   D.walls = clamp(parseInt($('#walls').value, 10) || 1, 1, 100);
-  D.hp = $('#hp').value;
-  D.duration = clamp(parseFloat($('#dur').value) || 40, 5, 300);
+  D.speed = clamp(parseFloat($('#spd').value) || 1, 0.5, 5);
 }
 function applyCfg() {
   readPanel();
@@ -759,17 +825,18 @@ sel.addEventListener('change', () => {
   if (sel.value === '__c') return;
   D = clone(PRESETS[sel.value]); syncPanel();
 });
-$('#walls').addEventListener('input', () => { $('#wallsOut').textContent = $('#walls').value; });
+$('#walls').addEventListener('input', () => { D.walls = parseInt($('#walls').value, 10) || 1; $('#wallsOut').textContent = D.walls; previewers.forEach(f => f()); });
+$('#spd').addEventListener('input', () => { D.speed = parseFloat($('#spd').value) || 1; $('#spdOut').textContent = '×' + D.speed; });
 $('#addR').addEventListener('click', () => {
   if (D.racers.length >= 4) return;
   const k = D.racers.length;
-  D.racers.push({ name: 'Corredor ' + (k + 1), color: PALETTE[k % 4], balls: 'n', power: '1' });
-  renderRacers();
+  D.racers.push({ name: 'Corredor ' + (k + 1), color: PALETTE[k % 4], balls: PW(1, 1), power: C(1) });
+  renderEditors();
 });
 $('#apply').addEventListener('click', applyCfg);
 $('#share').addEventListener('click', async () => {
   readPanel();
-  try { compile(D.hp); D.racers.forEach(r => { compile(r.balls); compile(r.power); }); } catch (e) { $('#err').textContent = '⚠ ' + e.message; return; }
+  try { compile(specExpr(D.hp)); D.racers.forEach(r => { compile(specExpr(r.balls)); compile(specExpr(r.power)); }); } catch (e) { $('#err').textContent = '⚠ ' + e.message; return; }
   saveHash(D);
   try { await navigator.clipboard.writeText(location.href); $('#err').style.color = '#c6ea5b'; $('#err').textContent = 'Link copiado ✓'; }
   catch (e) { $('#err').style.color = ''; $('#err').textContent = 'Copiá el link de la barra de direcciones.'; }
