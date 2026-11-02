@@ -15,7 +15,7 @@ function evaluate(source,n){
  function expr(){let v=term();while(peek()==='+'||peek()==='-'){let op=tokens[p++],w=term();v=op==='+'?v+w:v-w}return v}
  const v=expr();if(p!==tokens.length)throw Error('Revisá los operadores y paréntesis.');if(!Number.isFinite(v)||v<0)throw Error('El resultado debe ser finito y no negativo.');return Math.min(v,1e15)
 }
-function pretty(s){return s.replace(/\*/g,' · ').replace(/\^([\w]+)/g,'$1').replace(/n3/g,'n³').replace(/n2/g,'n²')}
+function pretty(s){const sup={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','n':'ⁿ','-':'⁻'};return s.replace(/\\*/g,' · ').replace(/\\^(-?[\\w]+)/g,(_,e)=>Array.from(e).map(ch=>sup[ch]||ch).join(''))}
 function names(){for(const k of ['A','B']){$('laneName'+k).textContent=$('name'+k).value.trim()||'Pista '+k;$('formula'+k).textContent=(k==='A'?'f(n) = ':'g(n) = ')+pretty($('f'+k).value)}}
 function validate(){let good=true;for(const k of ['A','B']){try{evaluate($('f'+k).value,S.max);$('err'+k).textContent=''}catch(e){$('err'+k).textContent=e.message;good=false}}return good}
 function makeBalls(k,value,now){const c=$('canvas'+k),w=c.clientWidth||320;const count=Math.min(112,Math.max(0,Math.ceil(value)));const cols=Math.max(8,Math.floor((w-48)/13));const arr=[];for(let i=0;i<count;i++){const row=Math.floor(i/cols),col=i%cols,per=Math.min(cols,count-row*cols);const x=(w-(per-1)*13)/2+col*13;const y=now-16-row*12;arr.push({x,y,r:5.1,delay:Math.min(i*5,420),seed:(i*17+count*13)%31})}return arr}
