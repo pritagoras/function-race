@@ -80,3 +80,20 @@ canvas{height:350px}
  .tuning-bottom{align-items:flex-start}.tuning-bottom>span{max-width:65%;line-height:1.5}
  .race-controls button{font-size:11px}
 }
+
+
+/* Arena layout inspired by the reference: two tall open columns divided by one wall. */
+.race-grid{gap:0;align-items:stretch}
+.arena-card{border-radius:0;box-shadow:none!important;border-top:0;border-bottom:0}
+.arena-card.a{border-left:0;border-right:1px solid #626b78}
+.arena-card.b{border-right:0;border-left:0}
+.arena-wrap{padding:8px 0 0;background:#05080d}
+.arena-wrap canvas{height:540px}
+.arena-head{min-height:88px}
+.arena-foot{min-height:40px}
+@media(max-width:680px){
+ .race-grid{grid-template-columns:1fr;gap:0}
+ .arena-card.a{border-right:0;border-bottom:1px solid #626b78}
+ .arena-card.b{border-left:0;border-top:0}
+ .arena-wrap canvas{height:420px}
+}
