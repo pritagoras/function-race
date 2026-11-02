@@ -686,18 +686,14 @@ function drawLane(r) {
 
   // pelotas (brillo + núcleo)
   const base = r.rad, many = r.balls.length > 120;
-  if (!many) {
-    ctx.fillStyle = rgba(r.color, 0.18); ctx.beginPath();
-    for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k) * 1.9; ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
-    ctx.fill();
-  }
   ctx.fillStyle = r.color; ctx.beginPath();
   for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k); ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
   ctx.fill();
-  const hot = clamp(Math.log10(Math.max(1, r.P)) / 6, 0, 0.95);
-  if (hot > 0.02) {
+  // El brillo es discreto y depende únicamente del poder: sin halo permanente.
+  const hot = clamp(Math.log10(Math.max(1, r.P)) / 8, 0, 0.28);
+  if (hot > 0.01) {
     ctx.fillStyle = `rgba(255,255,255,${hot})`; ctx.beginPath();
-    for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k) * 0.45; ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
+    for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k) * 0.28; ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
     ctx.fill();
   }
 }
