@@ -13,9 +13,10 @@ Daño por segundo = pelotas × poder. Gana quien rompe todas las paredes primero
 ## Cómo se ve
 
 - Las pelotas **chocan entre sí** (choques elásticos) y contra la pared actual.
-- Cada golpe contra la pared **suelta pelotas nuevas** hasta llegar a la cantidad que dice la ecuación (tope visual de 300). Al llegar se muestra **MAX** y dejan de multiplicarse.
-- La **vida de la pared baja con cada impacto**: una pelota grande pega fuerte y de a poco, muchas pelotas la desgastan en ráfagas.
-- El daño es real: cada golpe quita el **poder** de la pared actual. Con poder 1, una pared de 100 de vida necesita 100 golpes.
+- Cada impacto válido contra la pared genera **2 pelotas nuevas**. Las descendientes también rebotan y pueden reproducirse; el proceso continúa hasta alcanzar la cantidad indicada por la función (máximo de 300 esferas visibles por corredor).
+- La cantidad objetivo se recalcula al pasar a cada pared. Si disminuye, el excedente se retira gradualmente; si aumenta, los siguientes impactos generan las pelotas que faltan.
+- La **vida de la pared es compartida** por todas las pelotas de ese corredor. Cada impacto resta el poder vigente de esa pared; no se reparte el poder entre las pelotas.
+- Si la función matemática supera el límite visual de 300, cada esfera visible representa varias pelotas matemáticas y el daño se escala para conservar la magnitud total.
 
 ## Qué se puede configurar (⚙ Ajustes)
 
