@@ -17,15 +17,15 @@ main{max-width:1500px;margin:auto;padding:0 16px 28px;display:grid;grid-template
 .stage-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
 .stage-head strong{font-size:13px}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-#maze{display:block;width:100%;height:min(72vh,820px);min-height:460px;background:#0a0f16;touch-action:pan-y}
+#maze{display:block;width:100%;height:min(70vh,760px);min-height:360px;background:#0a0f16;touch-action:pan-y}
 .controls{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
 .side{padding:14px}.side h2{font-size:14px;margin:0 0 10px}.field{margin:13px 0}.field label{display:flex;justify-content:space-between;color:#cbd5df;font-size:12px;margin-bottom:6px}.field output{color:var(--accent);font-variant-numeric:tabular-nums}
 input[type=range],select{width:100%;accent-color:var(--accent)}select{background:#0c121a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}
 .algos{display:grid;gap:7px}.algo{display:flex;align-items:center;gap:8px;padding:8px 9px;background:#0c121a;border:1px solid var(--line);border-radius:9px;font-size:12px}.algo input{accent-color:var(--accent)}
 .cards{display:grid;gap:8px;margin-top:10px}.stat{padding:10px;background:#0c121a;border:1px solid var(--line);border-radius:10px}.stat-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}.stat small{display:block;color:var(--muted);font-size:11px;margin-top:5px}.bar{height:4px;background:#26313e;border-radius:5px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:5px}
 .note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}.status{font-size:12px;color:var(--muted);padding:0 14px 12px}
-@media(max-width:850px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.side h2,.side .wide{grid-column:1/-1}#maze{height:60vh;min-height:390px}}
-@media(max-width:520px){header{padding:14px 12px}main{padding:0 8px 18px;gap:8px}.side{display:block}.stage,.side{border-radius:12px}#maze{height:58vh;min-height:340px}.controls .btn{flex:1;padding:10px 8px;font-size:12px}}
+@media(max-width:850px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.side h2,.side .wide{grid-column:1/-1}#maze{height:min(56svh,520px);min-height:280px}}
+@media(max-width:520px){header{padding:12px 10px;align-items:flex-start}header h1{font-size:18px}header a{padding:8px;font-size:12px;white-space:nowrap}main{padding:0 7px 16px;gap:8px}.side{display:block;padding:12px}.stage,.side{border-radius:12px}#maze{height:min(48svh,390px);min-height:245px}.stage-head{padding:10px}.controls{padding:9px;gap:6px}.controls .btn{flex:1 1 28%;padding:9px 5px;font-size:11px;min-width:0}}
 </style>
 </head>
 <body>
@@ -77,7 +77,7 @@ function makeMaze(){
 }
 function makeSolver(type){
  const total=grid.length,dist=new Float64Array(total),prev=new Int32Array(total),seen=new Uint8Array(total);dist.fill(Infinity);prev.fill(-1);dist[start]=0;
- return {type,front:[start],dist,prev,seen,visited:0,done:false,path:[],pathReady:false,steps:0,started:0};
+ const queued=new Uint8Array(total);queued[start]=1;return {type,front:[start],head:0,queued,dist,prev,seen,visited:0,done:false,path:[],pathReady:false,steps:0,started:0};
 }
 function activeTypes(){const mode=$('#algoMode').value;return Array.from(document.querySelectorAll('.algo input:checked')).map(x=>x.value).filter(t=>mode==='all'||(mode==='informed'?t==='astar':t!=='astar'))}
 function resetSolvers(){running=false;paused=false;solvers=activeTypes().map(makeSolver);renderResults();$('#run').textContent='▶ Ejecutar';}
@@ -90,21 +90,20 @@ function stepSolver(s){
  else if(s.type==='dijkstra'||s.type==='astar'){
   let bi=0,best=Infinity;for(let i=0;i<s.front.length;i++){const id=s.front[i],v=s.dist[id]+(s.type==='astar'?heuristic(id):0);if(v<best){best=v;bi=i}}
   cur=s.front.splice(bi,1)[0];
- }else cur=s.front.shift();
+ }else cur=s.front[s.head++];
  if(s.seen[cur])return true;
  s.seen[cur]=1;s.visited++;s.steps++;
  if(cur===goal){s.done=true;let p=cur;while(p!==-1){s.path.push(p);p=s.prev[p]}s.path.reverse();s.pathSet=new Set(s.path);s.pathReady=true;return false}
  const ns=neighbors(cur);
- for(const nb of ns){const nd=s.dist[cur]+1;if(nd<s.dist[nb]){s.dist[nb]=nd;s.prev[nb]=cur;if(!s.seen[nb]&&!s.front.includes(nb))s.front.push(nb)}}
+ for(const nb of ns){const nd=s.dist[cur]+1;if(nd<s.dist[nb]){s.dist[nb]=nd;s.prev[nb]=cur;if(!s.seen[nb]&&!s.queued[nb]){s.front.push(nb);s.queued[nb]=1}}}
  return true;
 }
 function tick(){
- let any=false;
- for(const s of solvers){if(!s.done){stepSolver(s);if(!s.done||s.pathReady)any=true}}
- if(solvers.every(s=>s.done)){running=false;$('#run').textContent='↻ Ejecutar';$('#status').textContent='Exploración terminada. Compará las celdas visitadas y la longitud de cada solución.'}
- renderResults();draw();
+ let active=false;
+ for(const s of solvers){if(!s.done){stepSolver(s);if(!s.done)active=true}}
+ if(!active&&solvers.every(s=>s.done)){running=false;$('#run').textContent='↻ Ejecutar';$('#status').textContent='Exploración terminada. Compará las celdas visitadas y la longitud de cada solución.'}
 }
-function run(){if(!solvers.length)resetSolvers();if(solvers.every(s=>s.done))resetSolvers();running=true;paused=false;$('#run').textContent='Ⅱ En marcha';$('#status').textContent='Los algoritmos están explorando…'}
+function run(){if(!solvers.length||solvers.every(s=>s.done))resetSolvers();if(!solvers.length){$('#status').textContent='Activá al menos un algoritmo para comenzar.';return}running=true;paused=false;last=0;acc=0;$('#run').textContent='Ⅱ En marcha';$('#status').textContent='Explorando: las celdas se colorean a medida que avanza cada algoritmo.'}
 function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const pad=16;cell=Math.max(3,Math.min((rect.width-pad*2)/cols,(rect.height-pad*2)/rows));offsetX=(rect.width-cols*cell)/2;offsetY=(rect.height-rows*cell)/2;draw()}
 function draw(){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0a0f16';ctx.fillRect(0,0,w,h);
@@ -123,13 +122,13 @@ function renderResults(){
 }
 $('#run').addEventListener('click',run);
 $('#pause').addEventListener('click',()=>{paused=!paused;running=!paused;$('#pause').textContent=paused?'▶ Continuar':'Ⅱ Pausar'});
-$('#step').addEventListener('click',()=>{running=false;paused=true;if(solvers.every(s=>s.done))resetSolvers();tick();$('#status').textContent='Un paso de exploración aplicado a cada algoritmo activo.'});
+$('#step').addEventListener('click',()=>{running=false;paused=true;if(!solvers.length||solvers.every(s=>s.done))resetSolvers();tick();renderResults();draw();$('#status').textContent='Un paso aplicado a cada algoritmo activo.'});
 $('#reset').addEventListener('click',()=>{resetSolvers();draw();$('#status').textContent='Simulación reiniciada. El laberinto no cambió.'});
 $('#regen').addEventListener('click',makeMaze);
 $('#size').addEventListener('input',()=>$('#sizeOut').textContent=$('#size').value+' × '+Math.max(9,Math.floor($('#size').value*.68)));
 $('#speed').addEventListener('input',()=>$('#speedOut').textContent='×'+$('#speed').value);
 document.querySelectorAll('.algo input,#algoMode').forEach(e=>e.addEventListener('change',()=>{resetSolvers();draw()}));
-function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*18;let count=Math.min(60,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();draw()}requestAnimationFrame(frame)}
+function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*90;let count=Math.min(240,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();renderResults();draw()}requestAnimationFrame(frame)}
 addEventListener('resize',resize);makeMaze();resize();requestAnimationFrame(frame);
 })();
 </script>
