@@ -302,7 +302,7 @@ function resetRun() {
   S.racers.forEach(r => {
     r.n = 1; r.hpMax = S.hpArr[1]; r.hp = r.hpMax; r.B = r.bF(1); r.P = r.pF(1);
     r.done = false; r.doneT = 0; r.rank = 0; r.balls = []; r.flash = 0; r.dmgAcc = 0; r.popT = 0; r.lastTick = 0; r.lastBreak = 0;
-    r.brk = 0; r.hpShown = r.hpMax; r.hitHp = r.hpMax; r.hitList = []; r.popAcc = 0; r.target = 1;
+    r.brk = 0; r.hpShown = r.hpMax; r.hitHp = r.hpMax; r.hitList = []; r.popAcc = 0; r.target = 1; r.retireAcc = 0;
   });
   layout();
   S.racers.forEach(r => { r.floorY = L.stackTop; });
@@ -362,14 +362,22 @@ function updRacer(r, dt, pd) {
   r.brk = 0;
   const floor = r.floorY, balls = r.balls;
 
-  // objetivo de pelotas (lo que dice la ecuación, con tope visual). Arrancan pocas y se multiplican al chocar.
+  // La función fija el objetivo de pelotas. Cada impacto válido añade dos.
+  // El máximo es visual: no cambia el daño ni la cantidad matemática.
   const tgt = clamp(Math.round(r.B), 1, MAXB);
   r.target = tgt;
   if (balls.length === 0) {
-    const k0 = Math.min(tgt, 3);
-    for (let q = 0; q < k0; q++) spawnBall(r, rand(x0 + 10, x1 - 10), rand(top + 10, Math.max(top + 11, floor - 40)), false);
+    const initial = Math.min(tgt, 2);
+    for (let q = 0; q < initial; q++)
+      spawnBall(r, rand(x0 + 10, x1 - 10), rand(top + 10, Math.max(top + 11, floor - 40)), false);
   }
-  if (balls.length > tgt) balls.length = tgt;
+  // Si la función baja al pasar de pared, retirar el excedente gradualmente
+  // evita que las pelotas desaparezcan todas de golpe.
+  if (balls.length > tgt) {
+    r.retireAcc += dt * 10;
+    const remove = Math.min(balls.length - tgt, Math.floor(r.retireAcc));
+    if (remove > 0) { balls.splice(0, remove); r.retireAcc -= remove; }
+  } else r.retireAcc = 0;
   r.maxed = tgt > 1 && balls.length >= tgt;
 
   const n = balls.length;
@@ -383,7 +391,6 @@ function updRacer(r, dt, pd) {
   const head = new Int32Array(cols * rows), next = new Int32Array(n);
   const sub = clamp(Math.ceil(pd / 0.006), 1, 12), h = pd / sub;
   const running = S.state === 'running';
-  const w = balls.length >= tgt ? r.B / tgt : 1; // cada pelota representa B/tgt pelotas reales cuando se llega al tope visual
   const hl = r.hitList; hl.length = 0;
   let hits = 0;
 
@@ -400,7 +407,11 @@ function updRacer(r, dt, pd) {
         if (b.vy > 0) {
           b.vy = -b.vy; b.vx += rand(-25, 25);
           hits++;
-          const dmg = (running && !r.done) ? r.P * w : 0;
+          // Cada pelota conserva su poder. Solo al alcanzar el límite visual,
+          // cada esfera representa varias pelotas matemáticas.
+          const currentTarget = clamp(Math.round(r.B), 1, MAXB);
+          const virtualWeight = balls.length >= currentTarget ? Math.max(1, r.B / currentTarget) : 1;
+          const dmg = (running && !r.done) ? r.P * virtualWeight : 0;
           if (hl.length < 64) hl.push({ x: b.x, rad: rr, d: dmg });
           if (dmg > 0) applyDamage(r, dmg);
           if (parts.length < 1200 && Math.random() < 0.3) {
@@ -465,13 +476,18 @@ function updRacer(r, dt, pd) {
     }
   }
 
-  // el golpe contra la pared multiplica pelotas (hasta el objetivo)
+  // Cada impacto produce dos descendientes. El registro visual guarda solo
+  // una muestra de impactos, pero el contador hits conserva el total real.
   if (running && hits) {
-    let room = tgt - balls.length, spawned = 0;
-    for (let q = 0; q < hl.length * 2 && room > 0 && spawned < 30; q++, room--, spawned++) {
-      const hh = hl[q >> 1];
-      spawnBall(r, hh.x, floor - hh.rad * 2 - 2, true);
-      if ((q & 1) === 0 && parts.length < 1200) parts.push({ x: hh.x, y: floor - 4, vx: rand(-60, 60), vy: rand(-140, -40), life: .3, max: .3, size: 3, color: '#ffffff', g: 300 });
+    const liveTarget = clamp(Math.round(r.B), 1, MAXB);
+    const births = Math.min(Math.max(0, liveTarget - balls.length), hits * 2, MAXB - balls.length);
+    for (let q = 0; q < births; q++) {
+      const hh = hl.length ? hl[Math.floor(q / 2) % hl.length] : null;
+      const sx = hh ? hh.x : rand(x0 + 10, x1 - 10);
+      const rad = hh ? hh.rad : base;
+      spawnBall(r, sx, floor - rad * 2 - 2, true);
+      if ((q & 1) === 0 && parts.length < 1200)
+        parts.push({ x: sx, y: floor - 4, vx: rand(-60, 60), vy: rand(-140, -40), life: .3, max: .3, size: 3, color: '#ffffff', g: 300 });
     }
     // números de daño en el punto de impacto
     if (n <= 10) {
