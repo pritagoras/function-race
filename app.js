@@ -26,14 +26,20 @@ function valid(){let ok=true;for(let k of ['A','B'])try{ev($('f'+k).value,S.max)
 function size(k){let c=$('canvas'+k),r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);if(!r.width||!r.height)return null;if(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d)}let x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return{x,w:r.width,h:r.height}}
 function spawn(k,b,num){let a=S.balls[k],w=$('canvas'+k).clientWidth||320,h=$('canvas'+k).clientHeight||250,count=Math.min(num,Math.max(0,LIMIT-a.length));for(let j=0;j<count;j++){let q=Math.random()*Math.PI*2,d=12+Math.random()*23,v=65+Math.random()*105;a.push({x:Math.max(14,Math.min(w-14,b.x+Math.cos(q)*d)),y:Math.max(14,Math.min(h-14,b.y+Math.sin(q)*d)),vx:Math.cos(q)*v+(Math.random()-.5)*30,vy:Math.sin(q)*v+(Math.random()-.5)*30,r:R})}}
 function event(k,b){if(S.n[k]>=S.max)return;S.n[k]++;let born=ev($('f'+k).value,S.n[k]);S.totals[k]=Math.min(1e15,S.totals[k]+born);(k==='A'?S.a:S.b).push(S.totals[k]);spawn(k,b,born);if(S.n.A>=S.max&&S.n.B>=S.max)S.running=false}
-function collide(k,b,w,h,budget){let hit=false;if(b.x<b.r+3){b.x=b.r+3;b.vx=Math.abs(b.vx)*S.bounce;hit=true}else if(b.x>w-b.r-3){b.x=w-b.r-3;b.vx=-Math.abs(b.vx)*S.bounce;hit=true}if(b.y<b.r+3){b.y=b.r+3;b.vy=Math.abs(b.vy)*S.bounce;hit=true}else if(b.y>h-b.r-3){b.y=h-b.r-3;b.vy=-Math.abs(b.vy)*S.bounce;hit=true}if(hit&&budget.left>0&&S.n[k]<S.max){budget.left--;event(k,b)}}
+function collide(k,b,w,h,budget){let hit=false;
+ // Columnas abiertas arriba: paredes laterales y piso inferior, sin techo ni marco cerrado.
+ if(b.x<b.r+2){b.x=b.r+2;b.vx=Math.abs(b.vx)*S.bounce;hit=true}
+ else if(b.x>w-b.r-2){b.x=w-b.r-2;b.vx=-Math.abs(b.vx)*S.bounce;hit=true}
+ if(b.y>h-b.r-2){b.y=h-b.r-2;b.vy=-Math.abs(b.vy)*S.bounce;hit=true}
+ if(hit&&budget.left>0&&S.n[k]<S.max){budget.left--;event(k,b)}
+}
 function sim(k,dt){let c=$('canvas'+k),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;let steps=Math.max(1,Math.ceil(dt*120)),d=dt/steps,budget={left:EVENTS_PER_FRAME};for(let z=0;z<steps;z++){let a=S.balls[k],len=a.length;for(let i=0;i<len;i++){let b=a[i];b.vy=Math.min(1500,b.vy+S.gravity*d);let drag=Math.pow(S.friction,d*60);b.vx*=drag;b.vy*=Math.pow(S.friction,d*12);b.x+=b.vx*d;b.y+=b.vy*d;collide(k,b,w,h,budget);if(!budget.left&&S.n[k]>=S.max)break}}}
-function draw(k){let o=size(k);if(!o)return;let{x,w,h}=o,c=C[k];x.clearRect(0,0,w,h);let g=x.createRadialGradient(w/2,h/2,5,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,'#17283a');g.addColorStop(1,'#080f18');x.fillStyle=g;x.fillRect(0,0,w,h);
- // Paredes físicas visibles: el rebote ocurre exactamente en el interior de este marco.
- x.save();x.shadowColor=c;x.shadowBlur=10;x.strokeStyle=c;x.lineWidth=3;x.setLineDash([]);x.beginPath();x.roundRect(4,4,w-8,h-8,13);x.stroke();x.restore();
- x.strokeStyle='#ffffff22';x.lineWidth=1;x.beginPath();x.roundRect(9,9,w-18,h-18,9);x.stroke();
+function draw(k){let o=size(k);if(!o)return;let{x,w,h}=o,c=C[k];x.clearRect(0,0,w,h);x.fillStyle='#05080d';x.fillRect(0,0,w,h);
+ // Sin caja cerrada: solo laterales discretos y una base horizontal como en la referencia.
+ x.strokeStyle='#657080';x.lineWidth=1.4;x.beginPath();x.moveTo(1,0);x.lineTo(1,h);x.moveTo(w-1,0);x.lineTo(w-1,h);x.stroke();
+ x.strokeStyle='#aab3bf';x.lineWidth=1.5;x.beginPath();x.moveTo(0,h-2);x.lineTo(w,h-2);x.stroke();
  for(let b of S.balls[k]){x.save();x.shadowColor=c;x.shadowBlur=6;let q=x.createRadialGradient(b.x-2,b.y-2,.2,b.x,b.y,R*1.5);q.addColorStop(0,'white');q.addColorStop(.2,c);q.addColorStop(1,k==='A'?'#637d30':'#245d8c');x.fillStyle=q;x.beginPath();x.arc(b.x,b.y,R,0,Math.PI*2);x.fill();x.restore()}
- x.fillStyle='#c1cede';x.font='10px monospace';x.fillText(S.balls[k].length+' visibles · '+fmt(S.totals[k])+' nacidas',13,h-13)}
+ x.fillStyle='#c1cede';x.font='10px monospace';x.fillText(S.balls[k].length+' visibles · '+fmt(S.totals[k])+' nacidas',10,h-13)}
 function render(){for(let k of ['A','B']){$('count'+k).textContent=fmt(S.totals[k]);$('at'+k).textContent=S.n[k]+' / '+S.max;$('final'+k).textContent='NACIDAS: '+fmt(S.totals[k]);draw(k)}
  $('progressLabel').textContent='A '+S.n.A+'/'+S.max+' · B '+S.n.B+'/'+S.max+' REBOTES';let a=S.totals.A,b=S.totals.B;$('leader').textContent=!(S.n.A||S.n.B)?'—':a===b?'Empate':a>b?'Pista A':'Pista B';$('diff').textContent=(S.n.A||S.n.B)?fmt(Math.abs(a-b)):'—';$('ratio').textContent=(S.n.A||S.n.B)?fmt(Math.max(a,b)/Math.max(1,Math.min(a,b)))+'×':'—';$('winner').textContent=!(S.n.A||S.n.B)?'Esperando el primer rebote.':(S.n.A>=S.max&&S.n.B>=S.max)?'Simulación completada.':a===b?'Crecimiento acumulado igualado.':(a>b?$('nameA').value:$('nameB').value)+' lleva la ventaja.';
  let tb=$('history');tb.replaceChildren();if(!(S.n.A||S.n.B)){let tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=4;td.textContent='Los datos aparecen con los rebotes.';tr.append(td);tb.append(tr)}else for(let i=0;i<Math.max(S.n.A,S.n.B);i++){let tr=document.createElement('tr'),av=S.a[i]||0,bv=S.b[i]||0;[i+1,fmt(av),fmt(bv),av===bv?'Empate':av>bv?'Pista A':'Pista B'].forEach(v=>{let td=document.createElement('td');td.textContent=v;tr.append(td)});tb.append(tr)}}
