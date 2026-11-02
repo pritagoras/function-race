@@ -10,6 +10,13 @@ Cada corredor tiene que romper una fila de paredes. En la pared `n`:
 
 Daño por segundo = pelotas × poder. Gana quien rompe todas las paredes primero.
 
+## Cómo se ve
+
+- Las pelotas **chocan entre sí** (choques elásticos) y contra la pared actual.
+- Cada golpe contra la pared **suelta pelotas nuevas** hasta llegar a la cantidad que dice la ecuación (tope visual de 300). Al llegar se muestra **MAX** y dejan de multiplicarse.
+- La **vida de la pared baja con cada impacto**: una pelota grande pega fuerte y de a poco, muchas pelotas la desgastan en ráfagas.
+- El daño total se calcula exacto, así la duración y el ganador respetan las ecuaciones.
+
 ## Qué se puede configurar (⚙ Ajustes)
 
 - Cantidad de paredes (1–100)
