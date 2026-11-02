@@ -1,21 +1,35 @@
 # Function Race
 
-Simulador visual de crecimiento de funciones matemáticas. Proyecto estático, sin backend, preparado para GitHub Pages.
+Carrera de funciones: ¿gana la que tiene **más pelotas** (n³) o la que tiene **más poder** (2ⁿ)?
+
+Cada corredor tiene que romper una fila de paredes. En la pared `n`:
+
+- **Pelotas** = ecuación en `n`
+- **Poder** = daño por pelota, ecuación en `n`
+- **Vida de la pared** = ecuación en `n` (compartida)
+
+Daño por segundo = pelotas × poder. Gana quien rompe todas las paredes primero.
+
+## Qué se puede configurar (⚙ Ajustes)
+
+- Cantidad de paredes (1–100)
+- Ecuación de vida de las paredes
+- Duración de la carrera (lo que tarda el ganador)
+- Hasta 4 corredores, cada uno con su ecuación de pelotas y de poder
+- Presets y link para compartir la configuración (queda guardada en el `#hash` de la URL)
+
+Funciones disponibles: `+ - * / % ^ ( )`, `n`, `sqrt log log2 exp sin cos abs min max floor ceil pow`, `fact(n)`, `PI`, `E`.
+
+## Correrlo
+
+Es un solo `index.html`, sin build ni dependencias. Abrilo directo en el navegador o publicalo en GitHub Pages.
 
 ## Publicar en GitHub Pages
-1. Abrí **Settings → Pages**.
-2. En **Build and deployment**, elegí **Deploy from a branch**.
-3. Seleccioná `main` y `/ (root)`, guardá.
-4. La web quedará publicada en `https://pritagoras.github.io/function-race/`.
 
-## Uso
-- Elegí entre 2 y 16 paredes.
-- Configurá dos funciones usando `n` (o `x`), números, paréntesis y `+ - * / ^ !`.
-- Iniciá la carrera o avanzá paso a paso.
-- Consultá la tabla y exportá los datos como CSV.
+```bash
+gh repo create function-race --public --source=. --push
+gh api -X POST repos/:owner/function-race/pages -f "source[branch]=main" -f "source[path]=/"
+```
 
-## Notas
-- La evaluación numérica está limitada a valores no negativos y finitos, con un techo de `10^15`.
-- Para factorial se aceptan enteros de 0 a 170.
-- La representación de pelotas es deliberadamente reducida en valores grandes: el contador numérico conserva el valor calculado.
-- Google Fonts se usa como mejora visual; si no hay conexión, se aplican fuentes de respaldo.
+O manualmente: repo → **Settings → Pages → Deploy from a branch → main / (root)**.
+La URL queda `https://TU-USUARIO.github.io/function-race/`.

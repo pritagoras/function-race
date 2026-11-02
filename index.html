@@ -1,41 +1,689 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080b12">
-<title>Function Race — ¿Cuál crece más?</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css?v=20261102-6">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000000">
+<title>Function Race</title>
+<style>
+  :root { --bg:#000; --fg:#e8e8e8; --mut:#8a8a8a; --acc:#4aa3ff; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow:hidden; touch-action:manipulation; }
+  canvas { position:fixed; inset:0; width:100%; height:100%; display:block; }
+  #bar { position:fixed; left:0; right:0; bottom:calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; justify-content:center; z-index:5; }
+  #bar button { background:rgba(30,30,30,.85); color:var(--fg); border:1px solid #333; border-radius:999px;
+    padding:12px 18px; font-size:16px; backdrop-filter:blur(6px); cursor:pointer; }
+  #bar button:active { transform:scale(.96); }
+  #bar #bPlay { background:var(--acc); color:#001; border-color:transparent; font-weight:600; }
+  #panel { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; display:flex; align-items:flex-end; justify-content:center; }
+  #panel.hidden { display:none; }
+  .sheet { width:100%; max-width:560px; max-height:88dvh; overflow:auto; background:#111; border:1px solid #2a2a2a;
+    border-radius:18px 18px 0 0; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet h2 { margin:0; font-size:18px; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  label { display:block; font-size:12px; color:var(--mut); margin:10px 0 0; }
+  label b { color:var(--fg); }
+  input[type=text], input[type=number], select { width:100%; margin-top:4px; padding:10px 12px; font-size:16px;
+    background:#1a1a1a; color:var(--fg); border:1px solid #333; border-radius:10px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  select { font-family: inherit; }
+  input[type=range] { width:100%; margin-top:6px; accent-color:var(--acc); }
+  input[type=color] { width:38px; height:30px; padding:0; border:none; background:none; }
+  fieldset { border:1px solid #2c2c2c; border-radius:12px; margin:14px 0 0; padding:4px 12px 12px; }
+  legend { display:flex; gap:8px; align-items:center; padding:0 6px; }
+  legend input[type=text] { width:150px; margin:0; padding:6px 8px; font-size:14px; font-family:inherit; }
+  button.small { background:#222; color:var(--fg); border:1px solid #333; border-radius:8px; padding:8px 12px; font-size:14px; cursor:pointer; }
+  button.primary { background:var(--acc); color:#001; border:none; border-radius:10px; padding:12px 18px; font-size:16px; font-weight:600; cursor:pointer; }
+  .btns { display:flex; gap:10px; margin-top:16px; }
+  .err { color:#ff6b6b; font-size:13px; min-height:18px; margin:10px 0 0; white-space:pre-wrap; }
+  .hint { color:var(--mut); font-size:12px; line-height:1.5; margin:12px 0 0; }
+  code { color:#c6ea5b; }
+</style>
 </head>
 <body>
-<header><a class="brand" href="#"><b>ƒ</b> FUNCTION<span>RACE</span></a><div class="top-note">LABORATORIO DE CRECIMIENTO MATEMÁTICO</div><button class="help" id="help" aria-label="Ayuda">?</button></header>
-<main>
-<section class="intro"><div class="eyebrow"><i></i> DOS FUNCIONES · UNA CARRERA</div><h1>¿Cuál crece <em>más rápido?</em></h1><p>Configurá las reglas. Después, mirá cómo compiten.</p></section>
-<section class="screen setup-screen" id="setupScreen">
-<div class="section-head"><div><span class="step-tag">PASO 01</span><h2>Prepará tu carrera</h2><p>Elegí cuántos rebotes globales querés observar y qué función controla cada pista.</p></div><span class="screen-count">CONFIGURACIÓN</span></div>
-<div class="settings-card"><label class="wall-setting"><span><b>Rebotes globales</b><strong id="wallNum">11</strong></span><input id="walls" type="range" min="2" max="16" value="11"><small>La simulación avanzará desde n = 1 hasta n = <span id="wallHint">11</span>.</small></label><div class="setup-hint"><span class="hint-icon">↗</span><div><b>La velocidad se ajusta durante la carrera</b><small>Una vez dentro del simulador vas a poder acelerar, ralentizar o pausar sin reiniciar.</small></div></div></div>
-<div class="formula-grid">
-<article class="formula-card a"><div class="card-kicker"><i></i> PISTA A <span>VERDE LIMA</span></div><label>Nombre de la función<input id="nameA" value="Potencia cúbica" maxlength="20"></label><label>Expresión matemática<div class="expression">f(n) = <input id="fA" value="n^3" spellcheck="false" autocomplete="off"></div></label><div class="presets"><button data-f="fA" data-v="n^2">n²</button><button data-f="fA" data-v="n^3">n³</button><button data-f="fA" data-v="2^n">2ⁿ</button><button data-f="fA" data-v="n!">n!</button></div><small class="error" id="errA"></small></article>
-<article class="formula-card b"><div class="card-kicker"><i></i> PISTA B <span>AZUL</span></div><label>Nombre de la función<input id="nameB" value="Potencia de 2" maxlength="20"></label><label>Expresión matemática<div class="expression">g(n) = <input id="fB" value="2^n" spellcheck="false" autocomplete="off"></div></label><div class="presets"><button data-f="fB" data-v="n^2">n²</button><button data-f="fB" data-v="n^3">n³</button><button data-f="fB" data-v="2^n">2ⁿ</button><button data-f="fB" data-v="n!">n!</button></div><small class="error" id="errB"></small></article>
+<canvas id="c"></canvas>
+
+<div id="bar">
+  <button id="bGear" aria-label="Ajustes">⚙ Ajustes</button>
+  <button id="bPlay">▶ Iniciar</button>
+  <button id="bPause" aria-label="Pausa">⏸</button>
+  <button id="bSnd" aria-label="Sonido">🔊</button>
 </div>
-<section class="physics-settings"><div class="physics-heading"><div><span class="step-tag">FÍSICA DEL SISTEMA</span><b>Definí cómo se comportan las pelotas</b></div><small>Parámetros ajustables</small></div><div class="physics-controls"><label>Gravedad <output id="gravityOut">900</output><input id="gravity" type="range" min="300" max="1400" step="50" value="900"><small>px/s² · cuánto aceleran al caer</small></label><label>Rebote <output id="bounceOut">0,58</output><input id="bounce" type="range" min="0.10" max="0.90" step="0.05" value="0.58"><small>elasticidad de las colisiones</small></label><label>Fricción <output id="frictionOut">0,985</output><input id="friction" type="range" min="0.900" max="1" step="0.005" value="0.985"><small>retención de velocidad al contacto</small></label></div></section>
-<div class="syntax-note"><span>ⓘ</span><div><b>Cómo escribir las funciones</b><small>Usá <code>n</code>, números, paréntesis y <code>+ − * / × ^ !</code>. También se acepta multiplicación implícita: <code>2n</code>, <code>3(n+1)</code>, <code>n(n+1)</code>.</small></div></div>
-<div class="setup-footer"><div class="validation" id="validation">● LISTA PARA CONFIGURAR</div><button class="primary launch" id="launch">Comenzar carrera <span>↗</span></button></div>
-</section>
-<section class="screen race-screen hidden" id="raceScreen">
-<div class="race-toolbar"><button class="back-button" id="back">← <span>Editar parámetros</span></button><div class="race-progress-label"><span>PROGRESO</span><b id="progressLabel">0 / 11 REBOTES</b></div><button class="restart-button" id="restart">↻ Reiniciar</button></div>
-<div class="race-title"><div><span class="step-tag">PASO 02 · EN VIVO</span><h2>Que empiece la carrera.</h2><p>Cada rebote activa la función y genera nuevas pelotas alrededor de la que rebotó.</p></div><div class="live-pill"><i></i> <span id="status">LISTA</span></div></div>
-<div class="race-grid">
-<article class="arena-card a"><div class="arena-head"><div><div class="arena-name"><i></i><span id="laneNameA">Potencia cúbica</span></div><small id="formulaA">f(n) = n³</small></div><div class="arena-number"><strong id="countA">0</strong><span>PELOTAS</span></div></div><div class="arena-wrap"><canvas id="canvasA" aria-label="Animación de la pista A"></canvas></div><div class="arena-foot"><span>REBOTE GLOBAL</span><b id="atA">— / 11</b><span class="arena-value" id="finalA">VALOR: 0</span></div></article>
-<article class="arena-card b"><div class="arena-head"><div><div class="arena-name"><i></i><span id="laneNameB">Potencia de 2</span></div><small id="formulaB">g(n) = 2ⁿ</small></div><div class="arena-number"><strong id="countB">0</strong><span>PELOTAS</span></div></div><div class="arena-wrap"><canvas id="canvasB" aria-label="Animación de la pista B"></canvas></div><div class="arena-foot"><span>REBOTE GLOBAL</span><b id="atB">— / 11</b><span class="arena-value" id="finalB">VALOR: 0</span></div></article>
+
+<div id="panel" class="hidden">
+  <div class="sheet">
+    <div class="row"><h2>Ajustes de la carrera</h2><button class="small" id="closeP">✕</button></div>
+
+    <label>Preset
+      <select id="preset"></select>
+    </label>
+
+    <label>Cantidad de paredes: <b id="wallsOut"></b>
+      <input id="walls" type="range" min="1" max="100" step="1">
+    </label>
+
+    <label>Vida (HP) de la pared <code>n</code>
+      <input id="hp" type="text" spellcheck="false" autocapitalize="off" autocomplete="off">
+    </label>
+
+    <label>Duración de la carrera (segundos que tarda el ganador)
+      <input id="dur" type="number" min="5" max="300" step="1">
+    </label>
+
+    <div id="racers"></div>
+    <div class="btns"><button class="small" id="addR">+ Agregar corredor</button></div>
+
+    <p id="err" class="err"></p>
+    <div class="btns">
+      <button class="primary" id="apply">Aplicar y correr</button>
+      <button class="small" id="share">Copiar link</button>
+    </div>
+
+    <p class="hint">
+      Cada corredor tiene una ecuación para las <b>pelotas</b> y otra para el <b>poder</b> (daño por pelota), ambas en función de
+      <code>n</code> (la pared actual). El daño por segundo es pelotas × poder.<br>
+      Podés usar: <code>+ - * / % ^ ( )</code>, <code>n</code>, <code>sqrt log log2 exp sin cos abs min max floor ceil pow</code>,
+      <code>fact(n)</code>, <code>PI</code>, <code>E</code>. Ejemplos: <code>n^3</code>, <code>2^n</code>, <code>n*log2(n+1)</code>, <code>fact(n)</code>.
+    </p>
+  </div>
 </div>
-<section class="race-tuning"><div class="tuning-top"><div><span class="step-tag">CONTROLES EN VIVO</span><b>Ritmo de la simulación</b></div><output id="speedOut">1,0×</output></div><input id="speed" type="range" min="0.25" max="3" step="0.25" value="1" aria-label="Velocidad de la simulación"><div class="speed-marks"><span>Lento</span><span>Normal</span><span>Rápido</span><span>Máximo</span></div><div class="tuning-bottom"><span>Podés modificarlo mientras las pelotas están en movimiento</span><button id="speedToggle" class="speed-toggle" type="button">Ⅱ Pausar</button></div></section>
-<div class="physics-readout" id="physicsReadout">FÍSICA ACTIVA · GRAVEDAD 900 · REBOTE 0,58 · FRICCIÓN 0,985</div>
-<div class="race-controls"><button class="secondary" id="step">Siguiente rebote <span>→</span></button><button class="primary" id="play">▶ Iniciar carrera</button></div>
-<div class="result-strip"><div><small>VENTAJA ACTUAL</small><strong id="leader">—</strong></div><div><small>DIFERENCIA</small><strong id="diff">—</strong></div><div><small>RELACIÓN</small><strong id="ratio">—</strong></div><p id="winner">Esperando el primer rebote.</p></div>
-<div class="history-panel"><div class="history-head"><div><span class="step-tag">DATOS</span><h3>Resultados por rebote</h3></div><button class="link" id="csv">↓ Exportar CSV</button></div><div class="table-scroll"><table><thead><tr><th>REBOTE</th><th>PISTA A</th><th>PISTA B</th><th>VENTAJA</th></tr></thead><tbody id="history"><tr><td colspan="4">La tabla se completa durante la carrera.</td></tr></tbody></table></div></div>
-</section>
-<footer>ƒ FUNCTION RACE <span>Un laboratorio visual de crecimiento matemático.</span></footer>
-</main>
-<dialog id="dialog"><button id="close" aria-label="Cerrar">×</button><span class="step-tag">GUÍA RÁPIDA</span><h2>Una carrera de funciones</h2><p>Cada rebote incrementa un contador global por pista. En ese valor de n, la función determina cuántas pelotas nuevas aparecen alrededor de la que rebotó.</p><ul><li>Elegí entre 2 y 16 rebotes globales.</li><li>Escribí las funciones o usá los ejemplos rápidos.</li><li>Iniciá la animación o avanzá manualmente.</li><li>Todas las pelotas comparten el contador global de rebotes de su pista.</li><li>Las paredes tienen vida: cada impacto la reduce exponencialmente según el valor de la función en ese rebote. El golpe produce una reacción visual sutil.</li><li>En cada rebote nacen f(n) pelotas. El total acumulado es la suma de los nacimientos.</li><li>La cantidad dibujada se limita para mantener fluida la simulación; los totales matemáticos se conservan.</li></ul></dialog>
-<script>window.addEventListener("error",function(e){var n=document.getElementById("appError");if(!n){n=document.createElement("div");n.id="appError";n.style.cssText="position:fixed;z-index:9999;left:12px;right:12px;bottom:12px;padding:14px 16px;background:#5b1820;color:#fff;border:1px solid #ff8b8b;border-radius:10px;font:12px/1.5 Arial;box-shadow:0 8px 30px #0008";document.body.appendChild(n)}n.textContent="Error al iniciar la aplicación: "+(e.message||"No se pudo ejecutar app.js")+". Recargá la página; si persiste, enviá esta captura."});</script><script src="app.js?v=20261102-6"></script>
-</body></html>
+
+<script>
+'use strict';
+/* ============================ utilidades ============================ */
+const $ = s => document.querySelector(s);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const cv = $('#c'), ctx = cv.getContext('2d');
+
+function fmt(v) {
+  if (!isFinite(v)) return '∞';
+  const a = Math.abs(v);
+  if (a >= 1e6) return v.toExponential(2).replace('e+', 'e');
+  if (a < 10 && v % 1 !== 0) return v.toFixed(2);
+  return Math.round(v).toLocaleString('es-AR');
+}
+function rgba(hex, a) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
+/* ============================ ecuaciones ============================ */
+const MATH_OK = new Set(Object.getOwnPropertyNames(Math));
+function fact(x) {
+  x = Math.floor(x);
+  if (x < 0) return 0;
+  if (x > 170) return Infinity;
+  let r = 1;
+  for (let i = 2; i <= x; i++) r *= i;
+  return r;
+}
+function compile(src) {
+  const raw = String(src).trim();
+  if (!raw) throw new Error('Ecuación vacía');
+  if (!/^[\w\s+\-*\/%().,^]*$/.test(raw)) throw new Error('Caracteres no permitidos en: ' + raw);
+  const s = raw.replace(/\^/g, '**');
+  const noNums = s.replace(/\d+\.?\d*(e[+-]?\d+)?/gi, ' ');
+  for (const id of (noNums.match(/[A-Za-z_]\w*/g) || [])) {
+    if (id !== 'n' && id !== 'fact' && !MATH_OK.has(id)) throw new Error('No conozco "' + id + '" en: ' + raw);
+  }
+  const f = new Function('n', 'fact', 'with(Math){return (' + s + ');}');
+  const g = n => {
+    const v = f(n, fact);
+    if (typeof v !== 'number' || Number.isNaN(v)) return 0;
+    if (v === Infinity) return 1e300;
+    return Math.max(0, v);
+  };
+  g(1); // prueba rápida
+  return g;
+}
+
+/* ============================ configuración ============================ */
+const PRESETS = {
+  'n³ vs 2ⁿ (el clásico)': {
+    walls: 36, hp: '100*n^3', duration: 40,
+    racers: [
+      { name: 'Más pelotas', color: '#c6ea5b', balls: 'n^3', power: '1' },
+      { name: 'Más poder',   color: '#4aa3ff', balls: '1',   power: '2^n' }
+    ]
+  },
+  'Polinomios: n, n², n³': {
+    walls: 20, hp: '100*n^2', duration: 35,
+    racers: [
+      { name: 'n',  color: '#ff7a59', balls: 'n',   power: '1' },
+      { name: 'n²', color: '#ffd24a', balls: 'n^2', power: '1' },
+      { name: 'n³', color: '#5be0a6', balls: 'n^3', power: '1' }
+    ]
+  },
+  'Explosión: 2ⁿ vs n! vs n⁵': {
+    walls: 30, hp: '1000*n^2', duration: 40,
+    racers: [
+      { name: '2ⁿ', color: '#4aa3ff', balls: '1', power: '2^n' },
+      { name: 'n!', color: '#ff5bd1', balls: '1', power: 'fact(n)' },
+      { name: 'n⁵', color: '#c6ea5b', balls: '1', power: 'n^5' }
+    ]
+  }
+};
+const PALETTE = ['#c6ea5b', '#4aa3ff', '#ff7a59', '#ff5bd1'];
+const clone = o => JSON.parse(JSON.stringify(o));
+const firstPreset = () => clone(PRESETS[Object.keys(PRESETS)[0]]);
+
+function loadHash() {
+  try {
+    if (!location.hash || location.hash.length < 3) return null;
+    const j = decodeURIComponent(escape(atob(decodeURIComponent(location.hash.slice(1)))));
+    const c = JSON.parse(j);
+    if (c && c.racers && c.racers.length) return c;
+  } catch (e) {}
+  return null;
+}
+function saveHash(cfg) {
+  try {
+    const b = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+    history.replaceState(null, '', '#' + encodeURIComponent(b));
+  } catch (e) {}
+}
+
+/* ============================ audio ============================ */
+let AC = null, master = null, soundOn = true;
+function initAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    master = AC.createGain(); master.gain.value = 0.22; master.connect(AC.destination);
+  } catch (e) { AC = null; }
+}
+function tone(freq, dur, type, vol, slide) {
+  if (!AC || !soundOn) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq * slide), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
+}
+const PENT = [0, 2, 4, 7, 9];
+const noteFreq = (k, base) => base * Math.pow(2, (PENT[k % 5] + 12 * (Math.floor(k / 5) % 4)) / 12);
+let lastVibe = 0;
+function sfxBreak(r) {
+  tone(noteFreq(r.n, 196), 0.3, 'triangle', 0.5, 1.4);
+  tone(noteFreq(r.n, 98), 0.2, 'sawtooth', 0.16, 0.5);
+  const now = performance.now();
+  if (navigator.vibrate && now - lastVibe > 90) { navigator.vibrate(10); lastVibe = now; }
+}
+function sfxWin() {
+  [0, 2, 4, 7, 9, 12].forEach((s, i) => setTimeout(() => tone(330 * Math.pow(2, s / 12), 0.35, 'triangle', 0.45, 1), i * 90));
+}
+
+/* ============================ estado ============================ */
+const MAXB = 400;
+const S = { state: 'idle', racers: [], N: 0, hpF: null, hpArr: [], rate: 1, clock: 0, time: 0,
+            winner: null, winAt: 0, afterT: 0, scale: 1, order: [], cfg: null };
+const L = {};
+let parts = [], pops = [], shake = 0, W = 0, H = 0, DPR = 1;
+
+function layout() {
+  const n = S.racers.length || 1;
+  L.padTop = 240;
+  L.finishY = H - 96;
+  L.laneW = W / n;
+  const avail = L.finishY - L.padTop - 30;
+  L.wallH = clamp((avail - 170) / Math.max(1, S.N), 6, 34);
+  L.stackTop = L.finishY - 6 - L.wallH * S.N;
+  L.sc = clamp(L.laneW / 260, 0.5, 1.15);
+}
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  layout();
+}
+
+function build(cfg) {
+  const hpF = compile(cfg.hp);
+  const racers = cfg.racers.map((c, i) => {
+    const bF = compile(c.balls), pF = compile(c.power);
+    const b = c.balls.trim(), p = c.power.trim();
+    const label = b === '1' ? p : (p === '1' ? b : `(${b})·(${p})`);
+    return { idx: i, name: c.name, color: c.color, bF, pF, label };
+  });
+  S.cfg = cfg; S.N = cfg.walls; S.hpF = hpF;
+  S.hpArr = [0];
+  for (let k = 1; k <= S.N; k++) S.hpArr[k] = Math.max(1, hpF(k));
+  racers.forEach(r => {
+    let t = 0;
+    for (let k = 1; k <= S.N; k++) t += S.hpArr[k] / (r.bF(k) * r.pF(k));
+    r.total = t;
+  });
+  const fin = racers.map(r => r.total).filter(Number.isFinite);
+  S.rate = fin.length ? Math.min(...fin) / cfg.duration : 1;
+  S.racers = racers;
+  resetRun();
+}
+function resetRun() {
+  S.state = 'idle'; S.clock = 0; S.winner = null; S.afterT = 0; S.scale = 1; S.order = [];
+  parts = []; pops = []; shake = 0;
+  S.racers.forEach(r => {
+    r.n = 1; r.hpMax = S.hpArr[1]; r.hp = r.hpMax; r.B = r.bF(1); r.P = r.pF(1);
+    r.done = false; r.doneT = 0; r.rank = 0; r.balls = []; r.flash = 0; r.dmgAcc = 0; r.popT = 0; r.lastTick = 0; r.lastBreak = 0;
+    r.brk = 0;
+  });
+  layout();
+  S.racers.forEach(r => { r.floorY = L.stackTop; });
+  updatePlayBtn();
+}
+
+/* ============================ simulación ============================ */
+function remainingSim(r) {
+  let t = 0;
+  for (let k = r.n; k <= S.N; k++) {
+    const dps = r.bF(k) * r.pF(k);
+    const hp = k === r.n ? r.hp : S.hpArr[k];
+    t += hp / dps;
+  }
+  return t;
+}
+function stepRacer(r, simDt) {
+  if (r.done) return;
+  let tl = simDt, guard = 0;
+  while (tl > 0 && !r.done && guard++ < 500) {
+    const dps = r.B * r.P;
+    if (!(dps > 0)) break;
+    const need = r.hp / dps;
+    if (need <= tl) { tl -= need; r.dmgAcc += r.hp; breakWall(r); }
+    else { const d = dps * tl; r.hp -= d; r.dmgAcc += d; tl = 0; }
+  }
+}
+function breakWall(r) {
+  const k = r.n;
+  if (r.brk++ < 5) wallFx(r, k);
+  r.n++;
+  if (r.n > S.N) { r.hp = 0; finishRacer(r); return; }
+  r.hpMax = S.hpArr[r.n]; r.hp = r.hpMax; r.B = r.bF(r.n); r.P = r.pF(r.n);
+}
+function wallFx(r, k) {
+  const i = r.idx, x0 = i * L.laneW + 10, w = L.laneW - 20;
+  const y = L.stackTop + (k - 1) * L.wallH, h = L.wallH;
+  const cnt = clamp(Math.round(w / 6), 14, 40);
+  for (let j = 0; j < cnt && parts.length < 1500; j++) {
+    parts.push({ x: x0 + Math.random() * w, y: y + Math.random() * h, vx: rand(-120, 120), vy: rand(-260, 40),
+      life: rand(.5, 1.1), max: 1.1, size: rand(2, 5), color: r.color, g: 700 });
+  }
+  r.flash = 1; shake = Math.max(shake, 7);
+  const now = performance.now();
+  if (now - r.lastBreak > 40) { sfxBreak(r); r.lastBreak = now; }
+}
+function finishRacer(r) {
+  r.done = true; r.doneT = S.clock; S.order.push(r); r.rank = S.order.length;
+  const i = r.idx, x0 = i * L.laneW;
+  for (let j = 0; j < 110 && parts.length < 1800; j++) {
+    parts.push({ x: x0 + Math.random() * L.laneW, y: L.padTop + rand(0, 60), vx: rand(-90, 90), vy: rand(-80, 120),
+      life: rand(1.2, 2.4), max: 2.4, size: rand(3, 6), color: j % 3 ? r.color : '#ffffff', g: 260 });
+  }
+  shake = Math.max(shake, 10);
+  if (!S.winner) {
+    S.winner = r; S.winAt = S.time; S.afterT = 0; sfxWin();
+    let maxRem = 0;
+    S.racers.forEach(o => { if (!o.done) maxRem = Math.max(maxRem, remainingSim(o) / S.rate); });
+    S.scale = clamp(maxRem / 12, 1, 300);
+    if (!isFinite(maxRem)) S.scale = 300;
+  }
+}
+
+function updRacer(r, dt) {
+  const i = r.idx, x0 = i * L.laneW + 14, x1 = (i + 1) * L.laneW - 14, top = L.padTop + 6;
+  const target = L.stackTop + (Math.min(r.n, S.N + 1) - 1) * L.wallH;
+  r.floorY += (target - r.floorY) * Math.min(1, dt * 7);
+  r.flash = Math.max(0, r.flash - dt * 5);
+  r.brk = 0;
+
+  // cantidad visible de pelotas
+  const want = clamp(Math.round(r.B), 1, MAXB);
+  while (r.balls.length < want) {
+    const a = rand(0, Math.PI * 2), sp = rand(200, 300);
+    r.balls.push({ x: rand(x0, x1), y: rand(top, Math.max(top + 1, r.floorY - 20)), vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, k: Math.random() });
+  }
+  if (r.balls.length > want) r.balls.length = want;
+
+  const base = clamp(11 - Math.log10(want) * 3.2, 3, 11) * (1 + Math.min(1.4, Math.log10(Math.max(1, r.P)) / 4.5));
+  r.rad = base;
+  const floor = r.floorY;
+  let hits = 0;
+  for (const b of r.balls) {
+    const rr = base * (0.9 + 0.2 * b.k);
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.x < x0 + rr) { b.x = x0 + rr; b.vx = Math.abs(b.vx); }
+    else if (b.x > x1 - rr) { b.x = x1 - rr; b.vx = -Math.abs(b.vx); }
+    if (b.y < top + rr) { b.y = top + rr; b.vy = Math.abs(b.vy); }
+    if (b.y > floor - rr) {
+      b.y = floor - rr;
+      if (b.vy > 0) {
+        b.vy = -Math.abs(b.vy); b.vx += rand(-40, 40);
+        hits++;
+        if (parts.length < 1200 && Math.random() < 0.45) {
+          parts.push({ x: b.x, y: floor, vx: rand(-80, 80), vy: rand(-220, -60), life: .35, max: .35, size: rand(1.5, 3), color: r.color, g: 600 });
+        }
+      }
+    }
+  }
+  if (hits) {
+    r.flash = Math.min(1, r.flash + 0.12 * Math.min(hits, 4));
+    const now = performance.now();
+    if (S.state === 'running' && now - r.lastTick > 60) {
+      r.lastTick = now;
+      tone(rand(520, 820) + r.idx * 110, 0.05, 'square', 0.04, 0.6);
+    }
+  }
+  // números flotantes de daño
+  r.popT -= dt;
+  if (S.state === 'running' && r.popT <= 0 && r.dmgAcc > 0) {
+    if (pops.length < 60) pops.push({ x: rand(x0 + 20, x1 - 20), y: Math.max(top + 20, r.floorY - 24), text: '-' + fmt(r.dmgAcc), life: .8, max: .8, color: r.color });
+    r.dmgAcc = 0; r.popT = 0.16;
+  }
+}
+
+function update(dt) {
+  S.time += dt;
+  if (S.state === 'running') {
+    const sc = S.winner ? S.scale : 1;
+    S.clock += dt * sc;
+    const simDt = dt * sc * S.rate;
+    S.racers.forEach(r => stepRacer(r, simDt));
+    if (S.winner) S.afterT += dt;
+    if (S.racers.every(r => r.done) || S.afterT > 25) { S.state = 'over'; updatePlayBtn(); }
+  }
+  S.racers.forEach(r => updRacer(r, dt));
+  for (const p of parts) { p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
+  parts = parts.filter(p => p.life > 0);
+  for (const p of pops) { p.y -= 40 * dt; p.life -= dt; }
+  pops = pops.filter(p => p.life > 0);
+  shake = Math.max(0, shake - dt * 30);
+}
+
+/* ============================ dibujo ============================ */
+function rr(x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); }
+
+function drawFormula(txt, cx, y, size, color, maxW) {
+  txt = txt.replace(/\*\*/g, '^');
+  const segs = []; const re = /\^(\([^)]*\)|[\w.]+)/g; let last = 0, m;
+  while ((m = re.exec(txt))) {
+    if (m.index > last) segs.push({ t: txt.slice(last, m.index), sup: false });
+    segs.push({ t: m[1].replace(/^\(|\)$/g, ''), sup: true });
+    last = re.lastIndex;
+  }
+  if (last < txt.length) segs.push({ t: txt.slice(last), sup: false });
+  segs.forEach(s => { s.t = s.t.replace(/\*/g, '·'); });
+  const font = (sz, sup) => `italic ${sup ? sz * 0.6 : sz}px Georgia, "Times New Roman", serif`;
+  let sz = size;
+  const measure = () => segs.reduce((w, s) => { ctx.font = font(sz, s.sup); return w + ctx.measureText(s.t).width; }, 0);
+  let w = measure();
+  if (w > maxW) { sz = sz * maxW / w; w = measure(); }
+  ctx.textAlign = 'left'; ctx.fillStyle = color;
+  let x = cx - w / 2;
+  for (const s of segs) {
+    ctx.font = font(sz, s.sup);
+    ctx.fillText(s.t, x, s.sup ? y - sz * 0.38 : y);
+    x += ctx.measureText(s.t).width;
+  }
+}
+
+function drawHeader() {
+  const n = S.racers.length, sc = L.sc;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#8a8a8a'; ctx.font = '600 11px system-ui, sans-serif';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '4px';
+  ctx.fillText('FUNCTION RACE', W / 2, 26);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.fillStyle = '#f2f2f2'; ctx.font = `400 ${Math.min(34, W / 11)}px system-ui, sans-serif`;
+  ctx.fillText('¿Cuál gana?', W / 2, 66);
+  ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(24, 82); ctx.lineTo(W - 24, 82); ctx.stroke();
+
+  S.racers.forEach(r => {
+    const cx = (r.idx + 0.5) * L.laneW, nn = Math.min(r.n, S.N);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#c4c4c4'; ctx.font = `${Math.round(14 * Math.max(sc, .75))}px system-ui, sans-serif`;
+    ctx.fillText(r.name, cx, 108);
+    drawFormula(r.label, cx, 152, 44 * sc, r.color, L.laneW - 24);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9a9a9a'; ctx.font = `${Math.round(10 * Math.max(sc, .8))}px system-ui, sans-serif`;
+    ctx.fillText('PELOTAS', cx - L.laneW * .22, 178);
+    ctx.fillText('PODER', cx + L.laneW * .22, 178);
+    const B = r.bF(nn), P = r.pF(nn);
+    ctx.fillStyle = r.color; ctx.font = `300 ${Math.round(28 * sc)}px system-ui, sans-serif`;
+    ctx.fillText(fmt(B), cx - L.laneW * .22, 208);
+    ctx.fillText(fmt(P), cx + L.laneW * .22, 208);
+    ctx.fillStyle = '#8a8a8a'; ctx.font = `${Math.round(10 * Math.max(sc, .8))}px system-ui, sans-serif`;
+    const fin = r.done ? ' ✓' : '';
+    ctx.fillText(`n = ${nn}  /  ${S.N}${fin}`, cx, 230);
+  });
+  // separadores entre carriles
+  for (let i = 1; i < n; i++) {
+    ctx.strokeStyle = '#222'; ctx.beginPath(); ctx.moveTo(i * L.laneW, 94); ctx.lineTo(i * L.laneW, L.finishY + 34); ctx.stroke();
+  }
+}
+
+function drawLane(r) {
+  const i = r.idx, lx = i * L.laneW, x = lx + 10, w = L.laneW - 20;
+  // fondo suave
+  const g = ctx.createLinearGradient(0, L.padTop, 0, L.finishY);
+  g.addColorStop(0, rgba(r.color, 0)); g.addColorStop(1, rgba(r.color, 0.07));
+  ctx.fillStyle = g; ctx.fillRect(lx, L.padTop, L.laneW, L.finishY - L.padTop);
+
+  // paredes
+  if (!r.done) {
+    for (let k = r.n; k <= S.N; k++) {
+      const y = L.stackTop + (k - 1) * L.wallH, h = Math.max(3, L.wallH - (L.wallH < 8 ? 1 : 2));
+      if (k === r.n) {
+        const ox = (Math.random() - .5) * r.flash * 4;
+        rr(x + ox, y, w, h, Math.min(5, h / 2)); ctx.fillStyle = '#1d1d1d'; ctx.fill();
+        const frac = clamp(r.hp / r.hpMax, 0, 1);
+        if (frac > 0) { rr(x + ox, y, Math.max(2, w * frac), h, Math.min(5, h / 2)); ctx.fillStyle = r.color; ctx.fill(); }
+        if (r.flash > 0) { rr(x + ox, y, w, h, Math.min(5, h / 2)); ctx.fillStyle = `rgba(255,255,255,${r.flash * 0.45})`; ctx.fill(); }
+        if (h >= 13) {
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.font = `600 ${Math.min(12, h - 3)}px system-ui, sans-serif`;
+          ctx.fillStyle = '#000'; ctx.fillText(`${fmt(r.hp)} / ${fmt(r.hpMax)}`, lx + L.laneW / 2 + 1, y + h / 2 + 1);
+          ctx.fillStyle = '#fff'; ctx.fillText(`${fmt(r.hp)} / ${fmt(r.hpMax)}`, lx + L.laneW / 2, y + h / 2);
+          ctx.textAlign = 'left'; ctx.font = `${Math.min(10, h - 4)}px system-ui, sans-serif`; ctx.fillStyle = '#000';
+          ctx.fillText(String(k), x + 6, y + h / 2);
+          ctx.textBaseline = 'alphabetic';
+        }
+      } else {
+        rr(x, y, w, h, Math.min(4, h / 2)); ctx.fillStyle = rgba(r.color, 0.2); ctx.fill();
+        if (h >= 13) {
+          ctx.textBaseline = 'middle'; ctx.font = `${Math.min(10, h - 4)}px system-ui, sans-serif`; ctx.fillStyle = '#7c7c7c';
+          ctx.textAlign = 'left'; ctx.fillText(String(k), x + 6, y + h / 2);
+          ctx.textAlign = 'center'; ctx.fillText(fmt(S.hpArr[k]), lx + L.laneW / 2, y + h / 2);
+          ctx.textBaseline = 'alphabetic';
+        }
+      }
+    }
+  }
+  // línea de meta
+  ctx.strokeStyle = r.done ? r.color : '#444'; ctx.lineWidth = r.done ? 2 : 1;
+  ctx.beginPath(); ctx.moveTo(x, L.finishY); ctx.lineTo(x + w, L.finishY); ctx.stroke(); ctx.lineWidth = 1;
+  ctx.textAlign = 'center'; ctx.font = '11px system-ui, sans-serif'; ctx.fillStyle = r.done ? r.color : '#8a8a8a';
+  ctx.fillText(r.done ? `#${r.rank} · ${r.doneT.toFixed(1)} s` : 'FINISH', lx + L.laneW / 2, L.finishY + 22);
+
+  // pelotas (brillo + núcleo)
+  const base = r.rad, many = r.balls.length > 120;
+  if (!many) {
+    ctx.fillStyle = rgba(r.color, 0.18); ctx.beginPath();
+    for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k) * 1.9; ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
+    ctx.fill();
+  }
+  ctx.fillStyle = r.color; ctx.beginPath();
+  for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k); ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
+  ctx.fill();
+  const hot = clamp(Math.log10(Math.max(1, r.P)) / 6, 0, 0.95);
+  if (hot > 0.02) {
+    ctx.fillStyle = `rgba(255,255,255,${hot})`; ctx.beginPath();
+    for (const b of r.balls) { const q = base * (0.9 + 0.2 * b.k) * 0.45; ctx.moveTo(b.x + q, b.y); ctx.arc(b.x, b.y, q, 0, 6.2832); }
+    ctx.fill();
+  }
+}
+
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  if (shake > 0.2) ctx.translate(rand(-shake, shake) * .5, rand(-shake, shake) * .5);
+
+  S.racers.forEach(drawLane);
+
+  for (const p of parts) {
+    ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  for (const p of pops) {
+    ctx.globalAlpha = clamp(p.life / p.max, 0, 1); ctx.fillStyle = p.color;
+    ctx.font = '600 13px system-ui, sans-serif'; ctx.fillText(p.text, p.x, p.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  drawHeader();
+
+  // banners
+  const by = L.padTop + (L.finishY - L.padTop) * 0.3;
+  if (S.state === 'idle') {
+    const a = 0.65 + 0.35 * Math.sin(S.time * 3);
+    ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.font = '600 20px system-ui, sans-serif'; ctx.fillText('Tocá ▶ para empezar', W / 2, by);
+    ctx.globalAlpha = 1;
+  } else if (S.winner) {
+    const a = clamp((S.time - S.winAt) * 2.5, 0, 1);
+    ctx.globalAlpha = 0.92 * a;
+    const bw = Math.min(W - 40, 320), bh = 74;
+    rr(W / 2 - bw / 2, by - 36, bw, bh, 16); ctx.fillStyle = 'rgba(0,0,0,.78)'; ctx.fill();
+    ctx.strokeStyle = S.winner.color; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+    ctx.textAlign = 'center'; ctx.fillStyle = S.winner.color; ctx.font = '700 24px system-ui, sans-serif';
+    ctx.fillText('🏆 ' + S.winner.name + ' gana', W / 2, by - 4);
+    ctx.fillStyle = '#ccc'; ctx.font = '13px system-ui, sans-serif';
+    ctx.fillText('en ' + S.winner.doneT.toFixed(1) + ' s · ' + S.N + ' paredes', W / 2, by + 20);
+    ctx.globalAlpha = 1;
+  }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (S.racers.length) { update(dt); draw(); }
+  requestAnimationFrame(frame);
+}
+
+/* ============================ controles ============================ */
+function updatePlayBtn() {
+  $('#bPlay').textContent = S.state === 'idle' ? '▶ Iniciar' : '↻ Reiniciar';
+  $('#bPause').textContent = S.state === 'paused' ? '▶' : '⏸';
+}
+function startRun() {
+  initAudio();
+  resetRun(); S.state = 'running'; updatePlayBtn();
+}
+$('#bPlay').addEventListener('click', () => { if (S.state === 'idle') { initAudio(); S.state = 'running'; updatePlayBtn(); } else startRun(); });
+$('#bPause').addEventListener('click', () => {
+  if (S.state === 'running') { S.state = 'paused'; S.prevPaused = true; }
+  else if (S.state === 'paused') { S.state = 'running'; }
+  updatePlayBtn();
+});
+$('#bSnd').addEventListener('click', () => { soundOn = !soundOn; $('#bSnd').textContent = soundOn ? '🔊' : '🔇'; initAudio(); });
+cv.addEventListener('pointerdown', () => { if (S.state === 'idle') { initAudio(); S.state = 'running'; updatePlayBtn(); } });
+
+/* ----- panel de ajustes ----- */
+let D = firstPreset();
+function field(label, val, cb) {
+  const l = document.createElement('label'); l.textContent = label;
+  const i = document.createElement('input'); i.type = 'text'; i.value = val;
+  i.spellcheck = false; i.autocapitalize = 'off'; i.autocomplete = 'off';
+  i.addEventListener('input', () => cb(i.value));
+  l.appendChild(i); return l;
+}
+function renderRacers() {
+  const box = $('#racers'); box.innerHTML = '';
+  D.racers.forEach((r, i) => {
+    const fs = document.createElement('fieldset');
+    const lg = document.createElement('legend');
+    const col = document.createElement('input'); col.type = 'color'; col.value = r.color;
+    col.addEventListener('input', () => { r.color = col.value; });
+    const nm = document.createElement('input'); nm.type = 'text'; nm.value = r.name;
+    nm.addEventListener('input', () => { r.name = nm.value; });
+    lg.append(col, nm);
+    if (D.racers.length > 1) {
+      const rm = document.createElement('button'); rm.className = 'small'; rm.textContent = '✕'; rm.type = 'button';
+      rm.addEventListener('click', () => { D.racers.splice(i, 1); renderRacers(); });
+      lg.append(rm);
+    }
+    fs.append(lg,
+      field('Pelotas en la pared n', r.balls, v => { r.balls = v; }),
+      field('Poder (daño por pelota) en la pared n', r.power, v => { r.power = v; }));
+    box.appendChild(fs);
+  });
+  $('#addR').style.display = D.racers.length >= 4 ? 'none' : '';
+}
+function syncPanel() {
+  $('#walls').value = D.walls; $('#wallsOut').textContent = D.walls;
+  $('#hp').value = D.hp; $('#dur').value = D.duration;
+  renderRacers();
+}
+function readPanel() {
+  D.walls = clamp(parseInt($('#walls').value, 10) || 1, 1, 100);
+  D.hp = $('#hp').value;
+  D.duration = clamp(parseFloat($('#dur').value) || 40, 5, 300);
+}
+function applyCfg() {
+  readPanel();
+  try {
+    build(clone(D));
+    $('#err').textContent = '';
+    saveHash(D);
+    $('#panel').classList.add('hidden');
+    startRun();
+  } catch (e) {
+    $('#err').textContent = '⚠ ' + e.message;
+  }
+}
+const sel = $('#preset');
+Object.keys(PRESETS).forEach(k => { const o = document.createElement('option'); o.textContent = k; sel.appendChild(o); });
+const custom = document.createElement('option'); custom.textContent = 'Personalizado'; custom.value = '__c'; sel.appendChild(custom);
+sel.addEventListener('change', () => {
+  if (sel.value === '__c') return;
+  D = clone(PRESETS[sel.value]); syncPanel();
+});
+$('#walls').addEventListener('input', () => { $('#wallsOut').textContent = $('#walls').value; });
+$('#addR').addEventListener('click', () => {
+  if (D.racers.length >= 4) return;
+  const k = D.racers.length;
+  D.racers.push({ name: 'Corredor ' + (k + 1), color: PALETTE[k % 4], balls: 'n', power: '1' });
+  renderRacers();
+});
+$('#apply').addEventListener('click', applyCfg);
+$('#share').addEventListener('click', async () => {
+  readPanel();
+  try { compile(D.hp); D.racers.forEach(r => { compile(r.balls); compile(r.power); }); } catch (e) { $('#err').textContent = '⚠ ' + e.message; return; }
+  saveHash(D);
+  try { await navigator.clipboard.writeText(location.href); $('#err').style.color = '#c6ea5b'; $('#err').textContent = 'Link copiado ✓'; }
+  catch (e) { $('#err').style.color = ''; $('#err').textContent = 'Copiá el link de la barra de direcciones.'; }
+  setTimeout(() => { $('#err').style.color = ''; }, 1500);
+});
+$('#bGear').addEventListener('click', () => { syncPanel(); $('#err').textContent = ''; $('#panel').classList.remove('hidden'); if (S.state === 'running') { S.state = 'paused'; updatePlayBtn(); } });
+$('#closeP').addEventListener('click', () => { $('#panel').classList.add('hidden'); });
+$('#panel').addEventListener('pointerdown', e => { if (e.target.id === 'panel') $('#panel').classList.add('hidden'); });
+
+/* ============================ arranque ============================ */
+addEventListener('resize', resize);
+resize();
+(function init() {
+  const fromHash = loadHash();
+  if (fromHash) { try { D = fromHash; build(clone(D)); } catch (e) { D = firstPreset(); build(clone(D)); } }
+  else build(clone(D));
+  resize();
+  syncPanel();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
