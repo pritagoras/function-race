@@ -2,3 +2,81 @@
 @media(max-width:680px){header{padding:0 14px}.top-note{display:none}main{padding:0 11px}.intro{padding:29px 0 20px}.intro h1{font-size:36px}.screen{padding:15px;border-radius:13px}.section-head h2{font-size:20px}.section-head p{max-width:270px}.screen-count{font-size:8px}.settings-card{grid-template-columns:1fr;gap:15px;margin:16px 0 12px;padding:14px}.formula-grid{grid-template-columns:1fr;gap:10px}.formula-card{padding:14px}.setup-footer{align-items:stretch;flex-direction:column-reverse}.launch{width:100%}.race-screen{padding:12px}.race-title h2{font-size:18px}.race-title p{max-width:260px}.race-grid{grid-template-columns:1fr}.arena-wrap{padding:5px 8px 0}canvas{height:245px}.arena-card{display:block}.race-controls{position:sticky;bottom:8px;z-index:2;background:#080b11d9;backdrop-filter:blur(10px);border-radius:12px}.race-controls button{min-width:0;flex:1;padding:12px 8px}.result-strip{grid-template-columns:repeat(3,1fr)}.result-strip>div{padding:10px 8px}.result-strip strong{font-size:12px}.result-strip p{grid-column:1/-1;border-top:1px solid #253448;padding:11px}.arena-foot{font-size:8px}.back-button span{display:inline}.race-progress-label b{font-size:9px}footer span{display:block;float:none;margin-top:7px}}
 .physics-settings{margin-top:15px;padding:16px 17px;border:1px solid #2b3b4f;border-radius:11px;background:linear-gradient(135deg,#111c29,#0a111a)}.physics-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:13px}.physics-heading .step-tag,.physics-heading b{display:block}.physics-heading b{font-size:12px;margin-top:5px}.physics-heading>small{color:#8192a6;font-size:9px}.physics-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.physics-controls label{display:block;color:#dbe5f0;font-size:10px;font-weight:700}.physics-controls output{float:right;color:var(--lime);font:12px "DM Mono"}.physics-controls input{display:block;width:100%;margin:11px 0 6px;accent-color:var(--lime)}.physics-controls label:nth-child(2) output{color:var(--blue)}.physics-controls small{display:block;color:#8292a5;font-size:9px;font-weight:400}.physics-readout{text-align:center;color:#91a4ba;font:9px "DM Mono";letter-spacing:.7px;padding:3px 0 0}
 @media(max-width:680px){.physics-settings{padding:13px}.physics-controls{grid-template-columns:1fr;gap:13px}.physics-controls label{display:grid;grid-template-columns:1fr auto;align-items:center}.physics-controls input,.physics-controls small{grid-column:1/-1}.physics-controls input{margin:7px 0 4px}.physics-heading b{font-size:11px}.physics-readout{font-size:8px;line-height:1.6}}
+
+/* Visual refresh: cleaner hierarchy, softer surfaces, clearer controls */
+:root{--lime:#d4fa75;--blue:#83c7ff}
+body{background:radial-gradient(ellipse at 50% -10%,#1c2b40 0,#0b111a 48%,#080c13 100%);letter-spacing:.05px}
+header{height:68px;border-bottom-color:#263447;background:#080e17eF}
+main{max-width:1080px}
+.intro{padding:46px 0 29px}
+.intro h1{font-size:clamp(38px,5vw,58px);letter-spacing:-2.8px;font-weight:800}
+.intro p{font-size:14px;color:#a9b6c6}
+.screen{background:linear-gradient(155deg,#121e2c 0%,#0d1520 75%);border:1px solid #304157;border-radius:20px;padding:30px;box-shadow:0 26px 80px #0006}
+.section-head{align-items:center;margin-bottom:4px}
+.section-head h2{font-size:26px;letter-spacing:-.8px}
+.section-head p{font-size:13px;max-width:520px}
+.screen-count{background:#172536;border-color:#3b5069;color:#c5d3e3}
+.settings-card{background:#0b1420;border-color:#2d4056;border-radius:14px;padding:20px 22px;margin:23px 0 17px;grid-template-columns:1fr;gap:0}
+.wall-setting b{font-size:13px}
+.wall-setting strong{font-size:25px}
+.wall-setting input{margin:18px 0 9px}
+.setup-hint{display:flex;align-items:center;gap:13px;padding:14px 15px;margin-top:17px;border-top:1px solid #26374b;color:#d9e5f2}
+.hint-icon{display:grid;place-items:center;width:31px;height:31px;border-radius:9px;background:#263b2a;color:var(--lime);font-size:17px}
+.setup-hint b,.setup-hint small{display:block}.setup-hint b{font-size:11px}.setup-hint small{font-size:10px;color:#91a2b6;margin-top:4px}
+.formula-grid{gap:16px}
+.formula-card{padding:20px;border-radius:14px;background:linear-gradient(150deg,#0e1926,#0a121c);border-color:#34475e}
+.formula-card.a{border-top:2px solid var(--lime)}.formula-card.b{border-top:2px solid var(--blue)}
+.card-kicker{font-size:10px;letter-spacing:1.3px;margin-bottom:18px}
+.formula-card label{font-size:11px;color:#c3cfdd;margin:14px 0 7px}
+.formula-card>label>input,.expression{margin-top:7px;border-radius:9px;background:#080f18;border-color:#34485f}
+.expression input{border:0!important;background:transparent!important}
+.presets{gap:8px;margin-top:12px}.presets button{border-radius:8px;padding:9px;background:#182638;border-color:#3a4d64;font-weight:700}
+.physics-settings{padding:20px 21px;border-radius:14px;background:#0b1420;border-color:#2d4056;margin-top:17px}
+.physics-heading{margin-bottom:17px}.physics-heading b{font-size:13px}.physics-heading>small{font-size:10px}
+.physics-controls{gap:24px}.physics-controls label{font-size:11px}.physics-controls input{accent-color:var(--lime);height:5px;cursor:pointer}
+.syntax-note{border-radius:10px;background:#132033;border-color:#2b4058;padding:14px 16px}
+.setup-footer{margin-top:22px}.validation{font-size:10px}
+.primary,.secondary{border-radius:10px;padding:14px 20px;font-size:12px}
+.primary{background:linear-gradient(135deg,#ddff91,#c5ef69);box-shadow:0 7px 22px #c9f36b20}
+.launch{min-width:210px}
+.race-screen{padding:23px}
+.race-toolbar{padding-bottom:18px}
+.race-title{padding:23px 2px 19px}.race-title h2{font-size:25px}
+.race-grid{gap:16px}
+.arena-card{border-radius:15px;background:#080f18;border-color:#34475d}
+.arena-head{padding:17px 18px 14px}
+.arena-name{font-size:13px}
+.arena-number strong{font-size:27px}
+.arena-wrap{padding:10px 12px 0}
+canvas{height:350px}
+.race-tuning{margin:0 0 13px;padding:17px 19px;border:1px solid #33475e;border-radius:13px;background:linear-gradient(120deg,#142235,#0c1623);box-shadow:inset 0 1px #ffffff08}
+.tuning-top{display:flex;align-items:center;justify-content:space-between;gap:15px}
+.tuning-top .step-tag,.tuning-top b{display:block}.tuning-top b{font-size:13px;margin-top:5px}
+.tuning-top output{font:700 23px "DM Mono";color:var(--lime)}
+.race-tuning input{display:block;width:100%;margin:17px 0 5px;accent-color:var(--lime);cursor:pointer;height:6px}
+.speed-marks{display:flex;justify-content:space-between;color:#8294a9;font:9px "DM Mono"}
+.tuning-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #293b50;margin-top:14px;padding-top:12px;color:#94a6bb;font-size:10px}
+.speed-toggle{border:1px solid #52677f;border-radius:8px;padding:8px 12px;background:#1b2b3e;color:#eaf2fb;font-size:10px;font-weight:700}
+.speed-toggle:hover{border-color:var(--lime);color:var(--lime)}
+.physics-readout{padding:9px 0 2px;font-size:9px}
+.race-controls{padding:15px 0 18px}
+.result-strip{border-radius:12px;background:#0b1420;border-color:#34475d}
+.result-strip>div{padding:14px}
+.result-strip strong{font-size:16px}
+.history-panel{margin-top:23px}
+.history-head h3{font-size:16px}
+.table-scroll{border-radius:10px}
+@media(max-width:680px){
+ .intro{padding:31px 0 22px}.intro h1{font-size:39px}
+ .screen{padding:16px;border-radius:15px}
+ .section-head h2{font-size:22px}
+ .settings-card{padding:16px;margin:17px 0 13px}
+ .formula-card{padding:16px}
+ .physics-settings{padding:16px}
+ .race-screen{padding:13px}
+ .race-title{padding:18px 2px 15px}.race-title h2{font-size:21px}
+ canvas{height:255px}
+ .race-tuning{padding:14px;border-radius:11px}
+ .tuning-bottom{align-items:flex-start}.tuning-bottom>span{max-width:65%;line-height:1.5}
+ .race-controls button{font-size:11px}
+}
