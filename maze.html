@@ -84,7 +84,7 @@ function resetSolvers(){running=false;paused=false;solvers=activeTypes().map(mak
 function heuristic(a){return Math.abs(a%cols-goal%cols)+Math.abs(Math.floor(a/cols)-Math.floor(goal/cols))}
 function stepSolver(s){
  if(s.done)return false;
- if(!s.front.length){s.done=true;return false}
+ if(s.type==='bfs' ? s.head>=s.front.length : !s.front.length){s.done=true;return false}
  let cur;
  if(s.type==='dfs')cur=s.front.pop();
  else if(s.type==='dijkstra'||s.type==='astar'){
