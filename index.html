@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <title>Function Race</title>
 <style>
@@ -58,7 +58,7 @@
 </style>
 </head>
 <body>
-<canvas id="c"></canvas>
+<canvas id="c" role="img" aria-label="Simulación de Function Race"></canvas>
 
 <div id="bar">
   <button id="bGear" aria-label="Ajustes">⚙ Ajustes</button>
@@ -271,7 +271,8 @@ function normCfg(c) {
 function loadHash() {
   try {
     if (!location.hash || location.hash.length < 3) return null;
-    const j = decodeURIComponent(escape(atob(decodeURIComponent(location.hash.slice(1)))));
+    const bin = atob(decodeURIComponent(location.hash.slice(1)));
+const j = new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0)));
     const c = JSON.parse(j);
     if (c && c.racers && c.racers.length) return normCfg(c);
   } catch (e) {}
@@ -279,7 +280,7 @@ function loadHash() {
 }
 function saveHash(cfg) {
   try {
-    const b = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+    const b = btoa(Array.from(new TextEncoder().encode(JSON.stringify(cfg)), c => String.fromCharCode(c)).join(''));
     history.replaceState(null, '', '#' + encodeURIComponent(b));
   } catch (e) {}
 }
@@ -316,7 +317,7 @@ function sfxWin() {
 
 /* ============================ estado ============================ */
 const MAXB = 300;
-const S = { state: 'idle', racers: [], N: 0, hpF: null, hpArr: [], rate: 1, clock: 0, time: 0,
+const S = { state: 'idle', racers: [], N: 0, hpF: null, hpArr: [], clock: 0, time: 0,
             winner: null, winAt: 0, afterT: 0, scale: 1, order: [], cfg: null };
 const L = {};
 let parts = [], pops = [], shake = 0, W = 0, H = 0, DPR = 1;
@@ -445,7 +446,9 @@ function updRacer(r, dt, pd) {
   for (const b of balls) b.r = base * (0.9 + 0.2 * b.k);
   const maxR = base * 1.1, cell = Math.max(4, maxR * 2);
   const cols = Math.max(1, Math.ceil((x1 - x0) / cell)), rows = Math.max(1, Math.ceil((Math.max(20, floor - top) + cell) / cell));
-  const head = new Int32Array(cols * rows), next = new Int32Array(n);
+  if (!r._head || r._head.length < cols * rows) r._head = new Int32Array(cols * rows);
+if (!r._next || r._next.length < n) r._next = new Int32Array(Math.max(n, 64) * 2);
+const head = r._head, next = r._next;
   const sub = clamp(Math.ceil(pd / 0.006), 1, 12), h = pd / sub;
   const running = S.state === 'running';
   const hl = r.hitList; hl.length = 0;
@@ -776,7 +779,7 @@ function startRun() {
 }
 $('#bPlay').addEventListener('click', () => { if (S.state === 'idle') { initAudio(); S.state = 'running'; updatePlayBtn(); } else startRun(); });
 $('#bPause').addEventListener('click', () => {
-  if (S.state === 'running') { S.state = 'paused'; S.prevPaused = true; }
+  if (S.state === 'running') { S.state = 'paused'; }
   else if (S.state === 'paused') { S.state = 'running'; }
   updatePlayBtn();
 });
