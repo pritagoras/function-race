@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080b10">
+<title>Maze Evolution · Function Race</title>
+<style>
+:root{--bg:#080b10;--panel:#111720;--line:#26313e;--muted:#8491a1;--text:#edf3fa;--accent:#c6ea5b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{padding:18px 20px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:1500px;margin:auto}
+h1{font-size:20px;margin:0;letter-spacing:-.5px}header p{margin:3px 0 0;color:var(--muted);font-size:12px}
+a,.btn{color:var(--text);text-decoration:none;border:1px solid var(--line);background:#151d28;border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer}
+a:hover,.btn:hover{border-color:#607184}.btn.primary{background:var(--accent);color:#11180a;border-color:transparent;font-weight:750}.btn:disabled{opacity:.35;cursor:default}
+main{max-width:1500px;margin:auto;padding:0 16px 28px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+.stage,.side{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stage-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+.stage-head strong{font-size:13px}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+#maze{display:block;width:100%;height:min(70vh,760px);min-height:360px;background:#0a0f16;touch-action:pan-y}
+.controls{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
+.side{padding:14px}.side h2{font-size:14px;margin:0 0 10px}.field{margin:13px 0}.field label{display:flex;justify-content:space-between;color:#cbd5df;font-size:12px;margin-bottom:6px}.field output{color:var(--accent);font-variant-numeric:tabular-nums}
+input[type=range],select{width:100%;accent-color:var(--accent)}select{background:#0c121a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}
+.algos{display:grid;gap:7px}.algo{display:flex;align-items:center;gap:8px;padding:8px 9px;background:#0c121a;border:1px solid var(--line);border-radius:9px;font-size:12px}.algo input{accent-color:var(--accent)}
+.cards{display:grid;gap:8px;margin-top:10px}.stat{padding:10px;background:#0c121a;border:1px solid var(--line);border-radius:10px}.stat-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}.stat small{display:block;color:var(--muted);font-size:11px;margin-top:5px}.bar{height:4px;background:#26313e;border-radius:5px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:5px}
+.note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}.status{font-size:12px;color:var(--muted);padding:0 14px 12px}
+@media(max-width:850px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.side h2,.side .wide{grid-column:1/-1}#maze{height:min(56svh,520px);min-height:280px}}
+@media(max-width:520px){header{padding:12px 10px;align-items:flex-start}header h1{font-size:18px}header a{padding:8px;font-size:12px;white-space:nowrap}main{padding:0 7px 16px;gap:8px}.side{display:block;padding:12px}.stage,.side{border-radius:12px}#maze{height:min(48svh,390px);min-height:245px}.stage-head{padding:10px}.controls{padding:9px;gap:6px}.controls .btn{flex:1 1 28%;padding:9px 5px;font-size:11px;min-width:0}}
+</style>
+</head>
+<body>
+<header><div><h1>Maze Evolution</h1><p>Cuatro algoritmos. El mismo laberinto. Distintas estrategias.</p></div><a href="./">← Function Race</a></header>
+<main>
+<section class="stage">
+ <div class="stage-head"><strong id="stageTitle">Exploración en paralelo</strong><div class="legend"><span><i class="dot" style="background:#c6ea5b"></i>Inicio</span><span><i class="dot" style="background:#ffcc66"></i>Meta</span><span><i class="dot" style="background:#314457"></i>Visitado</span><span><i class="dot" style="background:#fff"></i>Camino</span></div></div>
+ <canvas id="maze"></canvas>
+ <div class="status" id="status">Generá un laberinto y ejecutá los algoritmos para comparar.</div>
+ <div class="controls"><button class="btn primary" id="run">▶ Ejecutar</button><button class="btn" id="step">Paso a paso</button><button class="btn" id="pause">Ⅱ Pausar</button><button class="btn" id="reset">↻ Reiniciar</button><button class="btn" id="regen">Nuevo laberinto</button></div>
+</section>
+<aside class="side">
+ <h2>Configuración</h2>
+ <div class="field"><label for="size">Tamaño <output id="sizeOut">25 × 17</output></label><input id="size" type="range" min="11" max="101" step="2" value="25"></div>
+ <div class="field"><label for="speed">Velocidad <output id="speedOut">×1</output></label><input id="speed" type="range" min="1" max="10" value="1"></div>
+ <div class="field"><label for="algoMode">Comparación</label><select id="algoMode"><option value="all">Todos los algoritmos</option><option value="uninformed">Sin heurística (DFS, BFS, Dijkstra)</option><option value="informed">Con heurística (A*)</option></select></div>
+ <div class="field wide"><label>Algoritmos activos</label><div class="algos">
+  <label class="algo"><input type="checkbox" value="bfs" checked><span style="color:#4aa3ff">●</span> BFS · búsqueda en anchura</label>
+  <label class="algo"><input type="checkbox" value="dfs" checked><span style="color:#ff8b5e">●</span> DFS · búsqueda en profundidad</label>
+  <label class="algo"><input type="checkbox" value="dijkstra" checked><span style="color:#d78cff">●</span> Dijkstra · costo mínimo</label>
+  <label class="algo"><input type="checkbox" value="astar" checked><span style="color:#c6ea5b">●</span> A* · heurística</label>
+ </div></div>
+ <h2 class="wide" style="margin-top:18px">Resultados</h2><div class="cards wide" id="results"></div>
+ <p class="note wide">BFS encuentra un camino mínimo en cantidad de pasos si todos los movimientos cuestan lo mismo. DFS no garantiza el camino más corto. Dijkstra y A* coinciden con BFS en este tablero uniforme; A* suele explorar menos celdas gracias a su heurística Manhattan.</p>
+</aside>
+</main>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), canvas=$('#maze'),ctx=canvas.getContext('2d');
+const COLORS={bfs:'#4aa3ff',dfs:'#ff8b5e',dijkstra:'#d78cff',astar:'#c6ea5b'};
+const NAMES={bfs:'BFS',dfs:'DFS',dijkstra:'Dijkstra',astar:'A*'};
+let cols=25,rows=17,grid=[],start=0,goal=0,solvers=[],running=false,paused=false,last=0,acc=0,cell=16,offsetX=0,offsetY=0;
+const TYPES=['bfs','dfs','dijkstra','astar'];
+const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
+function idx(x,y){return y*cols+x}
+function neighbors(id){const x=id%cols,y=Math.floor(id/cols),out=[];for(let d=0;d<4;d++){const nx=x+dirs[d][0],ny=y+dirs[d][1];if(nx>=0&&ny>=0&&nx<cols&&ny<rows){const j=idx(nx,ny);if(!grid[j].walls[d])out.push(j)}}return out}
+function makeMaze(){
+ cols=+$('#size').value;rows=Math.max(9,Math.floor(cols*.68));if(rows%2===0)rows--;if(cols%2===0)cols--;
+ grid=Array.from({length:cols*rows},()=>({walls:[true,true,true,true],seen:false}));
+ const visited=new Uint8Array(grid.length),stack=[idx(1,1)];visited[stack[0]]=1;
+ while(stack.length){const cur=stack[stack.length-1],x=cur%cols,y=Math.floor(cur/cols),opts=[];
+  for(let d=0;d<4;d++){const nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2;if(nx>0&&ny>0&&nx<cols-1&&ny<rows-1&&!visited[idx(nx,ny)])opts.push(d)}
+  if(!opts.length){stack.pop();continue}
+  const d=opts[Math.floor(Math.random()*opts.length)],nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2,mid=idx(x+dirs[d][0],y+dirs[d][1]),next=idx(nx,ny);
+  grid[cur].walls[d]=false;grid[next].walls[(d+2)%4]=false;grid[mid].walls[d]=false;grid[mid].walls[(d+2)%4]=false;visited[mid]=1;visited[next]=1;stack.push(next);
+ }
+ start=idx(1,1);goal=idx(cols-2,rows-2);resetSolvers();draw();$('#sizeOut').textContent=cols+' × '+rows;$('#status').textContent='Laberinto generado. Los cuatro algoritmos comparten exactamente el mismo recorrido posible.';
+}
+function makeSolver(type){
+ const total=grid.length,dist=new Float64Array(total),prev=new Int32Array(total),seen=new Uint8Array(total);dist.fill(Infinity);prev.fill(-1);dist[start]=0;
+ const queued=new Uint8Array(total);queued[start]=1;return {type,front:[start],head:0,queued,dist,prev,seen,visited:0,done:false,path:[],pathReady:false,steps:0,started:0};
+}
+function activeTypes(){const mode=$('#algoMode').value;return Array.from(document.querySelectorAll('.algo input:checked')).map(x=>x.value).filter(t=>mode==='all'||(mode==='informed'?t==='astar':t!=='astar'))}
+function resetSolvers(){running=false;paused=false;solvers=activeTypes().map(makeSolver);renderResults();$('#run').textContent='▶ Ejecutar';}
+function heuristic(a){return Math.abs(a%cols-goal%cols)+Math.abs(Math.floor(a/cols)-Math.floor(goal/cols))}
+function stepSolver(s){
+ if(s.done)return false;
+ if(s.type==='bfs' ? s.head>=s.front.length : !s.front.length){s.done=true;return false}
+ let cur;
+ if(s.type==='dfs')cur=s.front.pop();
+ else if(s.type==='dijkstra'||s.type==='astar'){
+  let bi=0,best=Infinity;for(let i=0;i<s.front.length;i++){const id=s.front[i],v=s.dist[id]+(s.type==='astar'?heuristic(id):0);if(v<best){best=v;bi=i}}
+  cur=s.front.splice(bi,1)[0];
+ }else cur=s.front[s.head++];
+ if(s.seen[cur])return true;
+ s.seen[cur]=1;s.visited++;s.steps++;
+ if(cur===goal){s.done=true;let p=cur;while(p!==-1){s.path.push(p);p=s.prev[p]}s.path.reverse();s.pathSet=new Set(s.path);s.pathReady=true;return false}
+ const ns=neighbors(cur);
+ for(const nb of ns){const nd=s.dist[cur]+1;if(nd<s.dist[nb]){s.dist[nb]=nd;s.prev[nb]=cur;if(!s.seen[nb]&&!s.queued[nb]){s.front.push(nb);s.queued[nb]=1}}}
+ return true;
+}
+function tick(){
+ let active=false;
+ for(const s of solvers){if(!s.done){stepSolver(s);if(!s.done)active=true}}
+ if(!active&&solvers.every(s=>s.done)){running=false;$('#run').textContent='↻ Ejecutar';$('#status').textContent='Exploración terminada. Compará las celdas visitadas y la longitud de cada solución.'}
+}
+function run(){if(!solvers.length||solvers.every(s=>s.done))resetSolvers();if(!solvers.length){$('#status').textContent='Activá al menos un algoritmo para comenzar.';return}running=true;paused=false;last=0;acc=0;$('#run').textContent='Ⅱ En marcha';$('#status').textContent='Explorando: las celdas se colorean a medida que avanza cada algoritmo.'}
+function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const pad=16;cell=Math.max(3,Math.min((rect.width-pad*2)/cols,(rect.height-pad*2)/rows));offsetX=(rect.width-cols*cell)/2;offsetY=(rect.height-rows*cell)/2;draw()}
+function draw(){
+ const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0a0f16';ctx.fillRect(0,0,w,h);
+ const order=['bfs','dfs','dijkstra','astar'];
+ for(let id=0;id<grid.length;id++){const x=id%cols,y=Math.floor(id/cols),px=offsetX+x*cell,py=offsetY+y*cell;
+  for(const s of solvers){if(s.seen[id]){const si=TYPES.indexOf(s.type),half=cell/2;const qx=si%2, qy=Math.floor(si/2);ctx.fillStyle=COLORS[s.type]+'D9';ctx.fillRect(px+qx*half+0.7,py+qy*half+0.7,Math.max(1,half-1.2),Math.max(1,half-1.2))}}
+  for(const s of solvers){if(s.pathReady&&s.pathSet&&s.pathSet.has(id)){ctx.fillStyle=COLORS[s.type];const si=TYPES.indexOf(s.type),half=cell/2;ctx.fillRect(px+(si%2)*half+half*.2,py+Math.floor(si/2)*half+half*.2,half*.6,half*.6)}}
+  ctx.strokeStyle='#536579';ctx.lineWidth=Math.max(1.15,cell*.11);ctx.beginPath();if(grid[id].walls[0]){ctx.moveTo(px,py);ctx.lineTo(px+cell,py)}if(grid[id].walls[1]){ctx.moveTo(px+cell,py);ctx.lineTo(px+cell,py+cell)}if(grid[id].walls[2]){ctx.moveTo(px,py+cell);ctx.lineTo(px+cell,py+cell)}if(grid[id].walls[3]){ctx.moveTo(px,py);ctx.lineTo(px,py+cell)}ctx.stroke();
+ }
+ function marker(id,color,label){const x=offsetX+(id%cols)*cell+cell/2,y=offsetY+Math.floor(id/cols)*cell+cell/2;ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,Math.max(3,cell*.28),0,Math.PI*2);ctx.fill();ctx.fillStyle='#081018';ctx.font='bold '+Math.max(7,cell*.42)+'px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y)}
+ marker(start,'#c6ea5b','S');marker(goal,'#ffcc66','G');
+}
+function renderResults(){
+ const el=$('#results');el.innerHTML='';
+ for(const s of solvers){const path=s.pathReady?s.path.length-1:0,card=document.createElement('div');card.className='stat';card.innerHTML='<div class="stat-top"><span style="color:'+COLORS[s.type]+'">'+NAMES[s.type]+'</span><span>'+ (s.done?(s.pathReady?'Encontró salida':'Sin salida'):'Buscando…')+'</span></div><small>'+s.visited.toLocaleString('es-AR')+' celdas visitadas · '+(s.pathReady?path+' pasos de camino':'camino pendiente')+'</small><div class="bar"><i style="background:'+COLORS[s.type]+';width:'+Math.min(100,s.visited/grid.length*100)+'%"></i></div>';el.appendChild(card)}
+}
+$('#run').addEventListener('click',run);
+$('#pause').addEventListener('click',()=>{paused=!paused;running=!paused;$('#pause').textContent=paused?'▶ Continuar':'Ⅱ Pausar'});
+$('#step').addEventListener('click',()=>{running=false;paused=true;if(!solvers.length||solvers.every(s=>s.done))resetSolvers();tick();renderResults();draw();$('#status').textContent='Un paso aplicado a cada algoritmo activo.'});
+$('#reset').addEventListener('click',()=>{resetSolvers();draw();$('#status').textContent='Simulación reiniciada. El laberinto no cambió.'});
+$('#regen').addEventListener('click',makeMaze);
+$('#size').addEventListener('input',()=>$('#sizeOut').textContent=$('#size').value+' × '+Math.max(9,Math.floor($('#size').value*.68)));
+$('#speed').addEventListener('input',()=>$('#speedOut').textContent='×'+$('#speed').value);
+document.querySelectorAll('.algo input,#algoMode').forEach(e=>e.addEventListener('change',()=>{resetSolvers();draw()}));
+function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*90;let count=Math.min(240,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();renderResults();draw()}requestAnimationFrame(frame)}
+addEventListener('resize',resize);makeMaze();resize();requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

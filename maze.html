@@ -17,7 +17,7 @@ main{max-width:1500px;margin:auto;padding:0 16px 28px;display:grid;grid-template
 .stage-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
 .stage-head strong{font-size:13px}.legend{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:11px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
-#maze{display:block;width:100%;height:min(70vh,760px);min-height:360px;background:#0a0f16;touch-action:pan-y}
+#maze{display:block;width:100%;height:min(70svh,760px);min-height:360px;background:#0a0f16;touch-action:pan-y}
 .controls{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
 .side{padding:14px}.side h2{font-size:14px;margin:0 0 10px}.field{margin:13px 0}.field label{display:flex;justify-content:space-between;color:#cbd5df;font-size:12px;margin-bottom:6px}.field output{color:var(--accent);font-variant-numeric:tabular-nums}
 input[type=range],select{width:100%;accent-color:var(--accent)}select{background:#0c121a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px}
@@ -32,8 +32,8 @@ input[type=range],select{width:100%;accent-color:var(--accent)}select{background
 <header><div><h1>Maze Evolution</h1><p>Cuatro algoritmos. El mismo laberinto. Distintas estrategias.</p></div><a href="./">← Function Race</a></header>
 <main>
 <section class="stage">
- <div class="stage-head"><strong id="stageTitle">Exploración en paralelo</strong><div class="legend"><span><i class="dot" style="background:#c6ea5b"></i>Inicio</span><span><i class="dot" style="background:#ffcc66"></i>Meta</span><span><i class="dot" style="background:#314457"></i>Visitado</span><span><i class="dot" style="background:#fff"></i>Camino</span></div></div>
- <canvas id="maze"></canvas>
+ <div class="stage-head"><strong id="stageTitle">Exploración en paralelo</strong><div class="legend"><span><i class="dot" style="background:#c6ea5b"></i>Inicio</span><span><i class="dot" style="background:#ffcc66"></i>Meta</span><span><i class="dot" style="background:#4aa3ff"></i>Visitado (color del algoritmo)</span><span><i class="dot" style="background:#fff"></i>Camino (cuadro interior)</span></div></div>
+ <canvas id="maze" role="img" aria-label="Laberinto con cuatro algoritmos de búsqueda explorando en paralelo"></canvas>
  <div class="status" id="status">Generá un laberinto y ejecutá los algoritmos para comparar.</div>
  <div class="controls"><button class="btn primary" id="run">▶ Ejecutar</button><button class="btn" id="step">Paso a paso</button><button class="btn" id="pause">Ⅱ Pausar</button><button class="btn" id="reset">↻ Reiniciar</button><button class="btn" id="regen">Nuevo laberinto</button></div>
 </section>
@@ -80,7 +80,8 @@ function makeSolver(type){
  const queued=new Uint8Array(total);queued[start]=1;return {type,front:[start],head:0,queued,dist,prev,seen,visited:0,done:false,path:[],pathReady:false,steps:0,started:0};
 }
 function activeTypes(){const mode=$('#algoMode').value;return Array.from(document.querySelectorAll('.algo input:checked')).map(x=>x.value).filter(t=>mode==='all'||(mode==='informed'?t==='astar':t!=='astar'))}
-function resetSolvers(){running=false;paused=false;solvers=activeTypes().map(makeSolver);renderResults();$('#run').textContent='▶ Ejecutar';}
+function syncPause(){$('#pause').textContent=paused?'▶ Continuar':'Ⅱ Pausar'}
+function resetSolvers(){running=false;paused=false;syncPause();solvers=activeTypes().map(makeSolver);renderResults();$('#run').textContent='▶ Ejecutar';}
 function heuristic(a){return Math.abs(a%cols-goal%cols)+Math.abs(Math.floor(a/cols)-Math.floor(goal/cols))}
 function stepSolver(s){
  if(s.done)return false;
@@ -103,11 +104,11 @@ function tick(){
  for(const s of solvers){if(!s.done){stepSolver(s);if(!s.done)active=true}}
  if(!active&&solvers.every(s=>s.done)){running=false;$('#run').textContent='↻ Ejecutar';$('#status').textContent='Exploración terminada. Compará las celdas visitadas y la longitud de cada solución.'}
 }
-function run(){if(!solvers.length||solvers.every(s=>s.done))resetSolvers();if(!solvers.length){$('#status').textContent='Activá al menos un algoritmo para comenzar.';return}running=true;paused=false;last=0;acc=0;$('#run').textContent='Ⅱ En marcha';$('#status').textContent='Explorando: las celdas se colorean a medida que avanza cada algoritmo.'}
+function run(){if(!solvers.length||solvers.every(s=>s.done))resetSolvers();if(!solvers.length){$('#status').textContent='Activá al menos un algoritmo para comenzar.';return}running=true;paused=false;syncPause();last=0;acc=0;$('#run').textContent='Ⅱ En marcha';$('#status').textContent='Explorando: las celdas se colorean a medida que avanza cada algoritmo.'}
 function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);const pad=16;cell=Math.max(3,Math.min((rect.width-pad*2)/cols,(rect.height-pad*2)/rows));offsetX=(rect.width-cols*cell)/2;offsetY=(rect.height-rows*cell)/2;draw()}
 function draw(){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0a0f16';ctx.fillRect(0,0,w,h);
- const order=['bfs','dfs','dijkstra','astar'];
+ 
  for(let id=0;id<grid.length;id++){const x=id%cols,y=Math.floor(id/cols),px=offsetX+x*cell,py=offsetY+y*cell;
   for(const s of solvers){if(s.seen[id]){const si=TYPES.indexOf(s.type),half=cell/2;const qx=si%2, qy=Math.floor(si/2);ctx.fillStyle=COLORS[s.type]+'D9';ctx.fillRect(px+qx*half+0.7,py+qy*half+0.7,Math.max(1,half-1.2),Math.max(1,half-1.2))}}
   for(const s of solvers){if(s.pathReady&&s.pathSet&&s.pathSet.has(id)){ctx.fillStyle=COLORS[s.type];const si=TYPES.indexOf(s.type),half=cell/2;ctx.fillRect(px+(si%2)*half+half*.2,py+Math.floor(si/2)*half+half*.2,half*.6,half*.6)}}
@@ -121,14 +122,15 @@ function renderResults(){
  for(const s of solvers){const path=s.pathReady?s.path.length-1:0,card=document.createElement('div');card.className='stat';card.innerHTML='<div class="stat-top"><span style="color:'+COLORS[s.type]+'">'+NAMES[s.type]+'</span><span>'+ (s.done?(s.pathReady?'Encontró salida':'Sin salida'):'Buscando…')+'</span></div><small>'+s.visited.toLocaleString('es-AR')+' celdas visitadas · '+(s.pathReady?path+' pasos de camino':'camino pendiente')+'</small><div class="bar"><i style="background:'+COLORS[s.type]+';width:'+Math.min(100,s.visited/grid.length*100)+'%"></i></div>';el.appendChild(card)}
 }
 $('#run').addEventListener('click',run);
-$('#pause').addEventListener('click',()=>{paused=!paused;running=!paused;$('#pause').textContent=paused?'▶ Continuar':'Ⅱ Pausar'});
-$('#step').addEventListener('click',()=>{running=false;paused=true;if(!solvers.length||solvers.every(s=>s.done))resetSolvers();tick();renderResults();draw();$('#status').textContent='Un paso aplicado a cada algoritmo activo.'});
+$('#pause').addEventListener('click',()=>{if(!paused&&(!running||!solvers.length||solvers.every(s=>s.done)))return;paused=!paused;running=!paused;syncPause()});
+$('#step').addEventListener('click',()=>{if(!solvers.length||solvers.every(s=>s.done))resetSolvers();running=false;paused=true;syncPause();tick();renderResults();draw();$('#status').textContent='Un paso aplicado a cada algoritmo activo.'});
 $('#reset').addEventListener('click',()=>{resetSolvers();draw();$('#status').textContent='Simulación reiniciada. El laberinto no cambió.'});
 $('#regen').addEventListener('click',makeMaze);
-$('#size').addEventListener('input',()=>$('#sizeOut').textContent=$('#size').value+' × '+Math.max(9,Math.floor($('#size').value*.68)));
+$('#size').addEventListener('input',()=>{let r=Math.max(9,Math.floor($('#size').value*.68));if(r%2===0)r--;$('#sizeOut').textContent=$('#size').value+' × '+r});
+$('#size').addEventListener('change',makeMaze);
 $('#speed').addEventListener('input',()=>$('#speedOut').textContent='×'+$('#speed').value);
 document.querySelectorAll('.algo input,#algoMode').forEach(e=>e.addEventListener('change',()=>{resetSolvers();draw()}));
-function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*90;let count=Math.min(240,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();renderResults();draw()}requestAnimationFrame(frame)}
+function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*90;let count=Math.min(240,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();if(t-(frame.r||0)>120||!running){renderResults();frame.r=t}draw()}requestAnimationFrame(frame)}
 addEventListener('resize',resize);makeMaze();resize();requestAnimationFrame(frame);
 })();
 </script>
