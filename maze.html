@@ -24,6 +24,8 @@ input[type=range],select{width:100%;accent-color:var(--accent)}select{background
 .algos{display:grid;gap:7px}.algo{display:flex;align-items:center;gap:8px;padding:8px 9px;background:#0c121a;border:1px solid var(--line);border-radius:9px;font-size:12px}.algo input{accent-color:var(--accent)}
 .cards{display:grid;gap:8px;margin-top:10px}.stat{padding:10px;background:#0c121a;border:1px solid var(--line);border-radius:10px}.stat-top{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700}.stat small{display:block;color:var(--muted);font-size:11px;margin-top:5px}.bar{height:4px;background:#26313e;border-radius:5px;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;width:0;border-radius:5px}
 .note{color:var(--muted);font-size:11px;line-height:1.5;margin:12px 0 0}.status{font-size:12px;color:var(--muted);padding:0 14px 12px}
+.algo:has(input:disabled){opacity:.4}
+.algo:has(input:disabled){opacity:.4}
 @media(max-width:850px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.side h2,.side .wide{grid-column:1/-1}#maze{height:min(56svh,520px);min-height:280px}}
 @media(max-width:520px){header{padding:12px 10px;align-items:flex-start}header h1{font-size:18px}header a{padding:8px;font-size:12px;white-space:nowrap}main{padding:0 7px 16px;gap:8px}.side{display:block;padding:12px}.stage,.side{border-radius:12px}#maze{height:min(48svh,390px);min-height:245px}.stage-head{padding:10px}.controls{padding:9px;gap:6px}.controls .btn{flex:1 1 28%;padding:9px 5px;font-size:11px;min-width:0}}
 </style>
@@ -35,12 +37,14 @@ input[type=range],select{width:100%;accent-color:var(--accent)}select{background
  <div class="stage-head"><strong id="stageTitle">Exploración en paralelo</strong><div class="legend"><span><i class="dot" style="background:#c6ea5b"></i>Inicio</span><span><i class="dot" style="background:#ffcc66"></i>Meta</span><span><i class="dot" style="background:#4aa3ff"></i>Visitado (color del algoritmo)</span><span><i class="dot" style="background:#fff"></i>Camino (cuadro interior)</span></div></div>
  <canvas id="maze" role="img" aria-label="Laberinto con cuatro algoritmos de búsqueda explorando en paralelo"></canvas>
  <div class="status" id="status">Generá un laberinto y ejecutá los algoritmos para comparar.</div>
- <div class="controls"><button class="btn primary" id="run">▶ Ejecutar</button><button class="btn" id="step">Paso a paso</button><button class="btn" id="pause">Ⅱ Pausar</button><button class="btn" id="reset">↻ Reiniciar</button><button class="btn" id="regen">Nuevo laberinto</button></div>
+ <div class="controls"><button class="btn primary" id="run">▶ Ejecutar</button><button class="btn" id="step">Paso a paso</button><button class="btn" id="pause">Ⅱ Pausar</button><button class="btn" id="reset">↻ Reiniciar</button><button class="btn" id="regen">Nuevo laberinto</button><button class="btn" id="share">Copiar link</button></div>
 </section>
 <aside class="side">
  <h2>Configuración</h2>
  <div class="field"><label for="size">Tamaño <output id="sizeOut">25 × 17</output></label><input id="size" type="range" min="11" max="101" step="2" value="25"></div>
  <div class="field"><label for="speed">Velocidad <output id="speedOut">×1</output></label><input id="speed" type="range" min="1" max="10" value="1"></div>
+ <div class="field"><label for="loops">Atajos (ciclos) <output id="loopsOut">0%</output></label><input id="loops" type="range" min="0" max="30" step="5" value="0"></div>
+ <div class="field"><label for="loops">Atajos (ciclos) <output id="loopsOut">0%</output></label><input id="loops" type="range" min="0" max="30" step="5" value="0"></div>
  <div class="field"><label for="algoMode">Comparación</label><select id="algoMode"><option value="all">Todos los algoritmos</option><option value="uninformed">Sin heurística (DFS, BFS, Dijkstra)</option><option value="informed">Con heurística (A*)</option></select></div>
  <div class="field wide"><label>Algoritmos activos</label><div class="algos">
   <label class="algo"><input type="checkbox" value="bfs" checked><span style="color:#4aa3ff">●</span> BFS · búsqueda en anchura</label>
@@ -49,7 +53,7 @@ input[type=range],select{width:100%;accent-color:var(--accent)}select{background
   <label class="algo"><input type="checkbox" value="astar" checked><span style="color:#c6ea5b">●</span> A* · heurística</label>
  </div></div>
  <h2 class="wide" style="margin-top:18px">Resultados</h2><div class="cards wide" id="results"></div>
- <p class="note wide">BFS encuentra un camino mínimo en cantidad de pasos si todos los movimientos cuestan lo mismo. DFS no garantiza el camino más corto. Dijkstra y A* coinciden con BFS en este tablero uniforme; A* suele explorar menos celdas gracias a su heurística Manhattan.</p>
+ <p class="note wide">BFS encuentra un camino mínimo en cantidad de pasos si todos los movimientos cuestan lo mismo. DFS no garantiza el camino más corto. Dijkstra y A* coinciden con BFS en este tablero uniforme; A* suele explorar menos celdas gracias a su heurística Manhattan. Con 0 % de atajos el laberinto tiene un único camino y los cuatro lo encuentran igual; subí los atajos para que DFS tome rutas más largas. Con 0 % de atajos el laberinto tiene un único camino y los cuatro lo encuentran igual; subí los atajos para que DFS tome rutas más largas.</p>
 </aside>
 </main>
 <script>
@@ -63,17 +67,64 @@ const TYPES=['bfs','dfs','dijkstra','astar'];
 const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
 function idx(x,y){return y*cols+x}
 function neighbors(id){const x=id%cols,y=Math.floor(id/cols),out=[];for(let d=0;d<4;d++){const nx=x+dirs[d][0],ny=y+dirs[d][1];if(nx>=0&&ny>=0&&nx<cols&&ny<rows){const j=idx(nx,ny);if(!grid[j].walls[d])out.push(j)}}return out}
-function makeMaze(){
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let seed=(Math.random()*4294967296)>>>0,rnd=mulberry32(seed);
+function readHash(){const m=/^#(\d+)-(\d+)-(\d+)$/.exec(location.hash);if(!m)return;seed=(+m[1])>>>0;$('#size').value=m[2];$('#loops').value=m[3]}
+function newSeed(){seed=(Math.random()*4294967296)>>>0}
+function carveLoops(){
+ const pct=(+$('#loops').value)/100;if(!(pct>0))return;
+ const cand=[];
+ for(let y=1;y<rows-1;y+=2)for(let x=1;x<cols-1;x+=2)for(const d of [1,2]){
+  const nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2;
+  if(nx<cols-1&&ny<rows-1&&grid[idx(x+dirs[d][0],y+dirs[d][1])].walls[d])cand.push([x,y,d]);
+ }
+ const n=Math.round(cand.length*pct);
+ for(let i=0;i<n;i++){
+  const j=i+Math.floor(rnd()*(cand.length-i));[cand[i],cand[j]]=[cand[j],cand[i]];
+  const [x,y,d]=cand[i],cur=idx(x,y),mid=idx(x+dirs[d][0],y+dirs[d][1]),nxt=idx(x+dirs[d][0]*2,y+dirs[d][1]*2);
+  grid[cur].walls[d]=false;grid[mid].walls[d]=false;grid[mid].walls[(d+2)%4]=false;grid[nxt].walls[(d+2)%4]=false;
+ }
+}
+function syncAlgos(){
+ const m=$('#algoMode').value;
+ document.querySelectorAll('.algo input').forEach(c=>{const ok=m==='all'||(m==='informed'?c.value==='astar':c.value!=='astar');c.checked=ok;c.disabled=!ok});
+}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let seed=(Math.random()*4294967296)>>>0,rnd=mulberry32(seed);
+function readHash(){const m=/^#(\d+)-(\d+)-(\d+)$/.exec(location.hash);if(!m)return;seed=(+m[1])>>>0;$('#size').value=m[2];$('#loops').value=m[3]}
+function newSeed(){seed=(Math.random()*4294967296)>>>0}
+function carveLoops(){
+ const pct=(+$('#loops').value)/100;if(!(pct>0))return;
+ const cand=[];
+ for(let y=1;y<rows-1;y+=2)for(let x=1;x<cols-1;x+=2)for(const d of [1,2]){
+  const nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2;
+  if(nx<cols-1&&ny<rows-1&&grid[idx(x+dirs[d][0],y+dirs[d][1])].walls[d])cand.push([x,y,d]);
+ }
+ const n=Math.round(cand.length*pct);
+ for(let i=0;i<n;i++){
+  const j=i+Math.floor(rnd()*(cand.length-i));[cand[i],cand[j]]=[cand[j],cand[i]];
+  const [x,y,d]=cand[i],cur=idx(x,y),mid=idx(x+dirs[d][0],y+dirs[d][1]),nxt=idx(x+dirs[d][0]*2,y+dirs[d][1]*2);
+  grid[cur].walls[d]=false;grid[mid].walls[d]=false;grid[mid].walls[(d+2)%4]=false;grid[nxt].walls[(d+2)%4]=false;
+ }
+}
+function syncAlgos(){
+ const m=$('#algoMode').value;
+ document.querySelectorAll('.algo input').forEach(c=>{const ok=m==='all'||(m==='informed'?c.value==='astar':c.value!=='astar');c.checked=ok;c.disabled=!ok});
+}
+function makeMaze(){rnd=mulberry32(seed);rnd=mulberry32(seed);
  cols=+$('#size').value;rows=Math.max(9,Math.floor(cols*.68));if(rows%2===0)rows--;if(cols%2===0)cols--;
  grid=Array.from({length:cols*rows},()=>({walls:[true,true,true,true],seen:false}));
  const visited=new Uint8Array(grid.length),stack=[idx(1,1)];visited[stack[0]]=1;
  while(stack.length){const cur=stack[stack.length-1],x=cur%cols,y=Math.floor(cur/cols),opts=[];
   for(let d=0;d<4;d++){const nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2;if(nx>0&&ny>0&&nx<cols-1&&ny<rows-1&&!visited[idx(nx,ny)])opts.push(d)}
   if(!opts.length){stack.pop();continue}
-  const d=opts[Math.floor(Math.random()*opts.length)],nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2,mid=idx(x+dirs[d][0],y+dirs[d][1]),next=idx(nx,ny);
+  const d=opts[Math.floor(rnd()*opts.length)],nx=x+dirs[d][0]*2,ny=y+dirs[d][1]*2,mid=idx(x+dirs[d][0],y+dirs[d][1]),next=idx(nx,ny);
   grid[cur].walls[d]=false;grid[next].walls[(d+2)%4]=false;grid[mid].walls[d]=false;grid[mid].walls[(d+2)%4]=false;visited[mid]=1;visited[next]=1;stack.push(next);
  }
- start=idx(1,1);goal=idx(cols-2,rows-2);resetSolvers();draw();$('#sizeOut').textContent=cols+' × '+rows;$('#status').textContent='Laberinto generado. Los cuatro algoritmos comparten exactamente el mismo recorrido posible.';
+ carveLoops();start=idx(1,1);goal=idx(cols-2,rows-2);
+ $('#loopsOut').textContent=$('#loops').value+'%';
+ try{history.replaceState(null,'','#'+seed+'-'+cols+'-'+$('#loops').value)}catch(e){}
+ resetSolvers();draw();$('#sizeOut').textContent=cols+' × '+rows;$('#status').textContent='Laberinto generado. Los cuatro algoritmos comparten exactamente el mismo recorrido posible.';
 }
 function makeSolver(type){
  const total=grid.length,dist=new Float64Array(total),prev=new Int32Array(total),seen=new Uint8Array(total);dist.fill(Infinity);prev.fill(-1);dist[start]=0;
@@ -96,7 +147,7 @@ function stepSolver(s){
  s.seen[cur]=1;s.visited++;s.steps++;
  if(cur===goal){s.done=true;let p=cur;while(p!==-1){s.path.push(p);p=s.prev[p]}s.path.reverse();s.pathSet=new Set(s.path);s.pathReady=true;return false}
  const ns=neighbors(cur);
- for(const nb of ns){const nd=s.dist[cur]+1;if(nd<s.dist[nb]){s.dist[nb]=nd;s.prev[nb]=cur;if(!s.seen[nb]&&!s.queued[nb]){s.front.push(nb);s.queued[nb]=1}}}
+ for(const nb of ns){const nd=s.dist[cur]+1;if(nd<s.dist[nb]&&(s.type!=='dfs'||s.prev[nb]===-1)){s.dist[nb]=nd;s.prev[nb]=cur;if(!s.seen[nb]&&!s.queued[nb]){s.front.push(nb);s.queued[nb]=1}}}
  return true;
 }
 function tick(){
@@ -125,13 +176,17 @@ $('#run').addEventListener('click',run);
 $('#pause').addEventListener('click',()=>{if(!paused&&(!running||!solvers.length||solvers.every(s=>s.done)))return;paused=!paused;running=!paused;syncPause()});
 $('#step').addEventListener('click',()=>{if(!solvers.length||solvers.every(s=>s.done))resetSolvers();running=false;paused=true;syncPause();tick();renderResults();draw();$('#status').textContent='Un paso aplicado a cada algoritmo activo.'});
 $('#reset').addEventListener('click',()=>{resetSolvers();draw();$('#status').textContent='Simulación reiniciada. El laberinto no cambió.'});
-$('#regen').addEventListener('click',makeMaze);
+$('#regen').addEventListener('click',()=>{newSeed();makeMaze()});
+$('#loops').addEventListener('input',()=>{$('#loopsOut').textContent=$('#loops').value+'%'});
+$('#loops').addEventListener('change',makeMaze);
+$('#share').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);$('#status').textContent='Link copiado: abre este mismo laberinto con estos ajustes.'}catch(e){$('#status').textContent='Copiá el link desde la barra de direcciones.'}});
 $('#size').addEventListener('input',()=>{let r=Math.max(9,Math.floor($('#size').value*.68));if(r%2===0)r--;$('#sizeOut').textContent=$('#size').value+' × '+r});
 $('#size').addEventListener('change',makeMaze);
 $('#speed').addEventListener('input',()=>$('#speedOut').textContent='×'+$('#speed').value);
-document.querySelectorAll('.algo input,#algoMode').forEach(e=>e.addEventListener('change',()=>{resetSolvers();draw()}));
+$('#algoMode').addEventListener('change',()=>{syncAlgos();resetSolvers();draw()});
+document.querySelectorAll('.algo input').forEach(e=>e.addEventListener('change',()=>{resetSolvers();draw()}));
 function frame(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;if(running&&!paused){acc+=dt*(+$('#speed').value)*90;let count=Math.min(240,Math.floor(acc));acc-=count;for(let i=0;i<count&&running;i++)tick();if(t-(frame.r||0)>120||!running){renderResults();frame.r=t}draw()}requestAnimationFrame(frame)}
-addEventListener('resize',resize);makeMaze();resize();requestAnimationFrame(frame);
+addEventListener('resize',resize);readHash();makeMaze();resize();requestAnimationFrame(frame);
 })();
 </script>
 </body></html>
